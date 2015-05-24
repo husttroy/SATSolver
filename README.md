@@ -1,9 +1,4 @@
 # SATSolver
-
-/******************************************************************************
- * Code 
- ******************************************************************************/
-
 --The directory primitives defines the SAT primitives you need to
 implement. All your work should be done in this directory, and you
 will only submit this directory
