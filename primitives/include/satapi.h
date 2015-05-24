@@ -51,6 +51,7 @@ typedef struct {
 
 typedef struct {
 	unsigned long index;
+	Lit ** lits;
 	BOOLEAN subsumed; 
 } Clause;
 
@@ -62,11 +63,11 @@ typedef struct {
  ******************************************************************************/
 
 typedef struct {
-	Clause * delta;
-	Clause * gamma;
-	Lit * seq;
-	Lit * lits;
-	Clause alpha;
+	Clause ** cnf;
+	Clause ** learns;
+	Lit ** decisions;
+	Lit ** implies;
+	Clause * assert;
 } SatState;
 
 
