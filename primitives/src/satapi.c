@@ -20,10 +20,8 @@
  * Note variable indices range from 1 to n where n is the number of variables
  ******************************************************************************/
 Var* index2varp(unsigned long i, SatState* sat_state) {
-
-  // ... TO DO ..
-  
-  return NULL; // dummy valued
+  Var ** var = (*sat_state).vars;
+  return var[i-1];
 }
 
 
@@ -41,24 +39,15 @@ Var* index2varp(unsigned long i, SatState* sat_state) {
  * Do not forget to update the status of literals when you run unit resolution
  ******************************************************************************/
 Lit* pos_literal(Var* var) {
-
-  // ... TO DO ..
-  
-  return NULL; // dummy value
+  return (*var).pos;
 }
 
 Lit* neg_literal(Var* var) {
-
-  // ... TO DO ..
-  
-  return NULL; // dummy value
+  return (*var).neg;
 }
 
 BOOLEAN set_literal(Lit* lit) {
-
-  // ... TO DO ..
-  
-  return 0; // dummy value
+  return (*lit).value == -1 ? '0' : '1';
 }
 
 /******************************************************************************
@@ -68,10 +57,8 @@ BOOLEAN set_literal(Lit* lit) {
  * Note clause indices range from 1 to m where m is the number of clauses 
  ******************************************************************************/
 Clause* index2clausep(unsigned long i, SatState* sat_state) {
-
-  // ... TO DO ..
-
-  return NULL; // dummy value
+  Clause ** cnf = (*sat_state).cnf;
+  return cnf[i-1];
 }
  
 
@@ -84,10 +71,11 @@ Clause* index2clausep(unsigned long i, SatState* sat_state) {
  * Do not forget to update the status of clauses when you run unit resolution
  ******************************************************************************/
 BOOLEAN subsumed_clause(Clause* clause) {
-
-  // ... TO DO ..
- 
-  return 0; // dummy value
+  for(int i = 0; i < (*clause).size; i++){
+    Lit * litp = (*clause).lits[i];
+    if((*litp).value == 1) return '1';
+  }
+  return '0';
 }
 
 
@@ -111,8 +99,6 @@ BOOLEAN subsumed_clause(Clause* clause) {
  * SatState (free_sat_state)
  ******************************************************************************/
 SatState* construct_sat_state(char* cnf_fname) {
-
-  // ... TO DO ..
   
   return NULL; // dummy value
 }

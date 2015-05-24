@@ -17,18 +17,6 @@ typedef char BOOLEAN;
  ******************************************************************************/
 
 /******************************************************************************
- * Variables:
- * --You must represent variables using the following struct 
- * --Variable index must start at 1
- * --Index of a variable must be of type "unsigned long"
- ******************************************************************************/
-
-typedef struct {
-	unsigned long index;
-} Var;
-
-
-/******************************************************************************
  * Literals:
  * --You must represent literals using the following struct 
  * --Positive literals' indices range from 1 to n (n is the number of variables)
@@ -43,6 +31,19 @@ typedef struct {
 
 
 /******************************************************************************
+ * Variables:
+ * --You must represent variables using the following struct 
+ * --Variable index must start at 1
+ * --Index of a variable must be of type "unsigned long"
+ ******************************************************************************/
+
+typedef struct {
+	unsigned long index;
+	Lit * pos;
+	Lit * neg;
+} Var;
+
+/******************************************************************************
  * Clauses: 
  * --You must represent clauses using the following struct 
  * --Clause index must start at 1
@@ -53,6 +54,7 @@ typedef struct {
 typedef struct {
 	unsigned long index;
 	Lit ** lits;
+	int size;
 } Clause;
 
 
