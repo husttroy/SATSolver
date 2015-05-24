@@ -67,7 +67,7 @@ typedef struct {
 	Clause ** learns;
 	Lit ** decisions;
 	Lit ** implies;
-	Clause * assert;
+	Clause * asserting;
 } SatState;
 
 
