@@ -38,7 +38,8 @@ typedef struct {
 
 typedef struct {
 	signed long index;
-} Lit;
+	int value;  // 1 --> true, 0 --> false, -1 --> unset
+} Lit; 
 
 
 /******************************************************************************
@@ -52,7 +53,6 @@ typedef struct {
 typedef struct {
 	unsigned long index;
 	Lit ** lits;
-	BOOLEAN subsumed; 
 } Clause;
 
 
@@ -63,6 +63,8 @@ typedef struct {
  ******************************************************************************/
 
 typedef struct {
+	Var ** vars;
+	Lit ** lits;
 	Clause ** cnf;
 	Clause ** learns;
 	Lit ** decisions;
