@@ -42,6 +42,10 @@ typedef double c2dWmc;          //for (weighted) model count
  * Basic structures
  ******************************************************************************/
 
+/* declare lit first */
+struct literal;
+struct clause;
+
 /******************************************************************************
  * Variables:
  * --You must represent variables using the following struct 
@@ -51,13 +55,12 @@ typedef double c2dWmc;          //for (weighted) model count
  ******************************************************************************/
 
 typedef struct var {
-
-  // ... TO DO ...
-
-  //c2dSize index; variable index (you can change the variable name as you wish)
-  
+  c2dSize index;
+  struct literal * pos;
+  struct literal * neg;
+  struct clause ** clauses;
+  int value;  // 1 --> true, 0 --> false, -1 --> unset
   BOOLEAN mark; //THIS FIELD MUST STAY AS IS
-
 } Var;
 
 /******************************************************************************
@@ -69,11 +72,8 @@ typedef struct var {
  ******************************************************************************/
 
 typedef struct literal {
-
-  // ... TO DO ...
-  
-  //c2dLiteral index; literal index (you can change the variable name as you wish)
-
+  c2dLiteral index;
+  Var * var;
 } Lit;
 
 /******************************************************************************
@@ -87,14 +87,10 @@ typedef struct literal {
  ******************************************************************************/
 
 typedef struct clause {
-
-  // ... TO DO ...
-  
-  //c2dSize index;  clause index   (you can change the variable name as you wish)
-  //Lit** literals; literal array  (you can change the variable name as you wish)
-  
+  c2dSize index;
+  Lit** literals;
+  int size;
   BOOLEAN mark; //THIS FIELD MUST STAY AS IS
-
 } Clause;
 
 /******************************************************************************
@@ -104,9 +100,14 @@ typedef struct clause {
  ******************************************************************************/
 
 typedef struct sat_state_t {
-
-  // ... TO DO ...
-
+  Var ** vars;
+  Lit ** lits;
+  Clause ** cnf;
+  Clause ** learns;
+  Lit ** decisions;
+  int decision_level; // current decision level, it is also the size of the decision sequence
+  Lit ** implies;
+  Clause * asserting;
 } SatState;
 
 /******************************************************************************

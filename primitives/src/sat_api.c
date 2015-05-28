@@ -17,35 +17,24 @@
 
 //returns a variable structure for the corresponding index
 Var* sat_index2var(c2dSize index, const SatState* sat_state) {
-
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  Var ** var = sat_state->vars;
+  return var[index-1];
 }
 
 //returns the index of a variable
 c2dSize sat_var_index(const Var* var) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return var->index;
 }
 
 //returns the variable of a literal
 Var* sat_literal_var(const Lit* lit) {
-
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  return lit->var;
 }
 
 //returns 1 if the variable is instantiated, 0 otherwise
 //a variable is instantiated either by decision or implication (by unit resolution)
 BOOLEAN sat_instantiated_var(const Var* var) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return var->value != -1 ? 0 : 1;
 }
 
 //returns 1 if all the clauses mentioning the variable are subsumed, 0 otherwise
@@ -89,34 +78,23 @@ Clause* sat_clause_of_var(c2dSize index, const Var* var) {
 
 //returns a literal structure for the corresponding index
 Lit* sat_index2literal(c2dLiteral index, const SatState* sat_state) {
-
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  Lit ** lits = sat_state->lits;
+  return lits[index-1];
 }
 
 //returns the index of a literal
 c2dLiteral sat_literal_index(const Lit* lit) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return lit->index;
 }
 
 //returns the positive literal of a variable
 Lit* sat_pos_literal(const Var* var) {
-
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  return var->pos;
 }
 
 //returns the negative literal of a variable
 Lit* sat_neg_literal(const Var* var) {
-
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  return var->neg;
 }
 
 //returns 1 if the literal is implied, 0 otherwise
@@ -157,18 +135,13 @@ void sat_undo_decide_literal(SatState* sat_state) {
 
 //returns a clause structure for the corresponding index
 Clause* sat_index2clause(c2dSize index, const SatState* sat_state) {
-
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  Clause ** clauses = sat_state->cnf;
+  return clauses[index-1];
 }
 
 //returns the index of a clause
 c2dSize sat_clause_index(const Clause* clause) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return clause->index;
 }
 
 //returns the literals of a clause
@@ -191,6 +164,12 @@ c2dSize sat_clause_size(const Clause* clause) {
 BOOLEAN sat_subsumed_clause(const Clause* clause) {
 
   // ... TO DO ...
+
+  /*for(int i = 0; i < (*clause).size; i++){
+    Lit * litp = (*clause).lits[i];
+    if((*litp).value == 1) return '1';
+  }
+  return '0';*/
   
   return 0; //dummy valued
 }
