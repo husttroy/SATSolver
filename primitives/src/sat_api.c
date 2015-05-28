@@ -34,7 +34,7 @@ Var* sat_literal_var(const Lit* lit) {
 //returns 1 if the variable is instantiated, 0 otherwise
 //a variable is instantiated either by decision or implication (by unit resolution)
 BOOLEAN sat_instantiated_var(const Var* var) {
-  return var->value != -1 ? 0 : 1;
+  return var->value == -1 ? 0 : 1;
 }
 
 //returns 1 if all the clauses mentioning the variable are subsumed, 0 otherwise
@@ -146,48 +146,31 @@ c2dSize sat_clause_index(const Clause* clause) {
 
 //returns the literals of a clause
 Lit** sat_clause_literals(const Clause* clause) {
-
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  return clause->lits;
 }
 
 //returns the number of literals in a clause
 c2dSize sat_clause_size(const Clause* clause) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return clause->size;
 }
 
 //returns 1 if the clause is subsumed, 0 otherwise
 BOOLEAN sat_subsumed_clause(const Clause* clause) {
-
-  // ... TO DO ...
-
-  /*for(int i = 0; i < (*clause).size; i++){
-    Lit * litp = (*clause).lits[i];
-    if((*litp).value == 1) return '1';
+  for(int i = 0; i < clause->size; i++){
+    Lit * litp = clause->lits[i];
+    if(litp->var->value == 1) return 1;
   }
-  return '0';*/
-  
-  return 0; //dummy valued
+  return 0;
 }
 
 //returns the number of clauses in the cnf of sat state
 c2dSize sat_clause_count(const SatState* sat_state) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return sat_state->clause_num;
 }
 
 //returns the number of learned clauses in a sat state (0 when the sat state is constructed)
 c2dSize sat_learned_clause_count(const SatState* sat_state) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return sat_state->learn_num;
 }
 
 //adds clause to the set of learned clauses, and runs unit resolution
@@ -196,10 +179,28 @@ c2dSize sat_learned_clause_count(const SatState* sat_state) {
 //this function is called on a clause returned by sat_decide_literal() or sat_assert_clause()
 //moreover, it should be called only if sat_at_assertion_level() succeeds
 Clause* sat_assert_clause(Clause* clause, SatState* sat_state) {
+  // check the size of the learned clause, reallocate the array when necessary
+  Clause ** learns = sat_state->learns;
+  int size = sat_state->learn_num;
+  int capacity = sat_state->learn_capacity; 
 
-  // ... TO DO ...
-  
-  return NULL; //dummy valued
+  if(size == capacity){
+    capacity += 5;
+    learns = (Clause **)realloc(learns, capacity);
+    sat_state->learn_capacity = capacity;
+    sat_state->learns = learns;
+  }
+
+  learns[size] = clause;
+  sat_state->learn_num ++;
+
+  if(!sat_unit_resolution(sat_state)){
+    // find a contradiction
+    return sat_state->asserting;
+  }else{
+    // succeed
+    return NULL;
+  }
 }
 
 /******************************************************************************
@@ -224,9 +225,57 @@ Clause* sat_assert_clause(Clause* clause, SatState* sat_state) {
 
 //constructs a SatState from an input cnf file
 SatState* sat_state_new(const char* file_name) {
+  FILE *fp = fopen(file_name, "r");
+  char * line = NULL;
+  size_t len = 0;
+  SatState* sat_state = (SatState*)malloc(sizeof(SatState));
 
-  // ... TO DO ...
+  if(fp == NULL){
+    printf("%s","Cannot read the cnf file, please check if it exists or is broken. Program Exit.");
+    exit(1);
+  }
   
+  int lnum = 0;
+  while(line = fgetln(fp, &len)) {
+    if(lnum == 0) continue;
+    if(lnum == 1){
+      // read the number of variables and the number of clauses
+      char * token = strtok(line, " ");
+      int count = 0;
+      while(token){
+        if(count == 2){
+          int var_num = atoi(token);
+          sat_state->var_num = var_num;
+          sat_state->vars = (Var **)malloc(sizeof(Var *) * var_num);
+          for(int i = 0; i < var_num; i++){
+            Var * var = (Var *)malloc(sizeof(Var));
+            var->index = i;
+            var->pos = NULL;
+            var->neg = NULL;
+            var->value = -1;
+            sat_state->vars[i] = var;
+          }
+        }else if(count == 3){
+          int clause_num = atoi(token);
+          sat_state->clause_num = clause_num;
+          sat_state->cnf = (Clause **)malloc(sizeof(Clause *) * clause_num);
+        }
+  
+        count ++;
+      } 
+    }else{
+       // read each clause
+       
+    }
+    
+    lnum ++; 
+  }
+
+  if (!feof(fp)) err(1, "Error occurs while reading cnf file.");
+	
+  fclose(fp);
+  if(line) free(line);
+
   return NULL; //dummy valued
 }
 

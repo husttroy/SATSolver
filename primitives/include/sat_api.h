@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <assert.h>
 
@@ -88,7 +89,7 @@ typedef struct literal {
 
 typedef struct clause {
   c2dSize index;
-  Lit** literals;
+  Lit** lits;
   int size;
   BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Clause;
@@ -101,9 +102,14 @@ typedef struct clause {
 
 typedef struct sat_state_t {
   Var ** vars;
+  int var_num;
   Lit ** lits;
+  int lit_num;
   Clause ** cnf;
+  int clause_num;
   Clause ** learns;
+  int learn_num;
+  int learn_capacity;
   Lit ** decisions;
   int decision_level; // current decision level, it is also the size of the decision sequence
   Lit ** implies;
