@@ -4,11 +4,11 @@ AR = ar
 AR_FLAGS = -cq
 LIB_FILE = libsat.a
 
-SRC = src/satapi.c
+SRC = src/sat_api.c
 
 OBJS=$(SRC:.c=.o)
 
-HEADERS = satapi.h
+HEADERS = sat_api.h
 
 sat: $(OBJS)
 	$(AR) $(AR_FLAGS) $(LIB_FILE) $(OBJS)
