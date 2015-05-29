@@ -249,23 +249,60 @@ SatState* sat_state_new(const char* file_name) {
           sat_state->vars = (Var **)malloc(sizeof(Var *) * var_num);
           for(int i = 0; i < var_num; i++){
             Var * var = (Var *)malloc(sizeof(Var));
-            var->index = i;
+            var->index = i + 1;
             var->pos = NULL;
             var->neg = NULL;
             var->value = -1;
             sat_state->vars[i] = var;
           }
+
+          sat_state->lits = (Lit **)mallooc(sizeof(Lit *) * var_num * 2);
         }else if(count == 3){
           int clause_num = atoi(token);
           sat_state->clause_num = clause_num;
           sat_state->cnf = (Clause **)malloc(sizeof(Clause *) * clause_num);
         }
-  
+        
         count ++;
       } 
     }else{
        // read each clause
-       
+       Clause * c = (Clause *)malloc(sizeof(Clause));
+
+       c->index = lnum - 1;
+       int capacity = 5;
+       c->lits = (Lit **)malloc(sizeof(Lit *) * capacity);
+
+       char * token = strtok(line, " ");
+       int count = 0; // count literals in this clause
+       while(token){
+         int lit_index = atoi(token);
+         int var_index = lit_index > 0 ? lit_index : -lit_index; 
+         Lit * lit = (Lit *)malloc(sizeof(Lit));
+         lit->index = lit_index;
+         lit->var = sat_state->vars[var_index];
+         if(count >= capacity){
+           capacity += 5;
+           c->lits = (Lit **)realloc(c->lits, capacity); 
+         }
+
+         // add to clause
+         c->lits[count] = lit;
+    	
+         if(lit_index > 0) {
+           // add to global literal arrays
+           sat_state->lits[2 * (lit_index - 1)] = lit; 
+           // update var
+           sat_state->vars[var_index]->pos = lit;
+         }else{
+           sat_state->lits[2 * lit_index - 1] = lit;
+           sat_state->vars[var_index]->neg = lit;
+         }
+         count ++;
+       }
+
+       c->size = count;
+       sat_state->cnf[lnum - 2] = c;
     }
     
     lnum ++; 

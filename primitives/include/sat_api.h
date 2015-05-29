@@ -59,7 +59,7 @@ typedef struct var {
   c2dSize index;
   struct literal * pos;
   struct literal * neg;
-  struct clause ** clauses;
+  /* struct clause ** clauses; */
   int value;  // 1 --> true, 0 --> false, -1 --> unset
   BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Var;
