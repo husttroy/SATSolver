@@ -47,10 +47,7 @@ BOOLEAN sat_irrelevant_var(const Var* var) {
 
 //returns the number of variables in the cnf of sat state
 c2dSize sat_var_count(const SatState* sat_state) {
-
-  // ... TO DO ...
-  
-  return 0; //dummy valued
+  return sat_state->var_num;
 }
 
 //returns the number of clauses mentioning a variable
@@ -223,27 +220,52 @@ Clause* sat_assert_clause(Clause* clause, SatState* sat_state) {
  * SatState (sat_state_free)
  ******************************************************************************/
 
+
+// helper function, check if str starts with pre.
+int startsWith(const char *pre, const char *str){
+  size_t lenpre = strlen(pre),
+         lenstr = strlen(str);
+  return lenstr < lenpre ? 0 : strncmp(pre, str, lenpre) == 0;
+}
+
+void add_clause(Var * var, Clause * clause){
+  if(var->clause_num + 1 > var->clause_capacity){
+    var->clause_capacity += 10;
+    var->clauses = (Clause **)realloc(var->clauses, var->clause_capacity);
+  }
+
+  var->clauses[var->clause_num] = clause;
+}
+
 //constructs a SatState from an input cnf file
 SatState* sat_state_new(const char* file_name) {
   FILE *fp = fopen(file_name, "r");
   char * line = NULL;
   size_t len = 0;
   SatState* sat_state = (SatState*)malloc(sizeof(SatState));
+  sat_state->learns = NULL;
+  sat_state->learn_num = 0;
+  sat_state->learn_capacity = 0;
+  sat_state->decisions = NULL;
+  sat_state->decision_level = 0;
+  sat_state->implies = NULL;
+  sat_state->asserting = NULL;
 
   if(fp == NULL){
     printf("%s","Cannot read the cnf file, please check if it exists or is broken. Program Exit.");
     exit(1);
   }
   
-  int lnum = 0;
+  int clause_count = 0;
   while(line = fgetln(fp, &len)) {
-    if(lnum == 0) continue;
-    if(lnum == 1){
-      // read the number of variables and the number of clauses
+    if(startsWith("0", line) || startsWith("c", line) || startsWith("%", line) || startsWith("ccc", line)) continue; // comment line
+    else if(startsWith("p", line)){
+      // problem line, tokenize it
       char * token = strtok(line, " ");
       int count = 0;
       while(token){
         if(count == 2){
+          // read variable number
           int var_num = atoi(token);
           sat_state->var_num = var_num;
           sat_state->vars = (Var **)malloc(sizeof(Var *) * var_num);
@@ -252,12 +274,16 @@ SatState* sat_state_new(const char* file_name) {
             var->index = i + 1;
             var->pos = NULL;
             var->neg = NULL;
+            var->clauses = NULL;
+            var->clause_num = 0;
+            var->clause_capacity = 0;
             var->value = -1;
             sat_state->vars[i] = var;
           }
 
-          sat_state->lits = (Lit **)mallooc(sizeof(Lit *) * var_num * 2);
+          sat_state->lits = (Lit **)malloc(sizeof(Lit *) * var_num * 2);
         }else if(count == 3){
+          // read clause number
           int clause_num = atoi(token);
           sat_state->clause_num = clause_num;
           sat_state->cnf = (Clause **)malloc(sizeof(Clause *) * clause_num);
@@ -269,51 +295,58 @@ SatState* sat_state_new(const char* file_name) {
        // read each clause
        Clause * c = (Clause *)malloc(sizeof(Clause));
 
-       c->index = lnum - 1;
+       c->index = clause_count + 1;
        int capacity = 5;
        c->lits = (Lit **)malloc(sizeof(Lit *) * capacity);
 
        char * token = strtok(line, " ");
-       int count = 0; // count literals in this clause
+       int lit_count = 0; // count literals in this clause
        while(token){
          int lit_index = atoi(token);
          int var_index = lit_index > 0 ? lit_index : -lit_index; 
          Lit * lit = (Lit *)malloc(sizeof(Lit));
          lit->index = lit_index;
          lit->var = sat_state->vars[var_index];
-         if(count >= capacity){
+         if(lit_count >= capacity){
            capacity += 5;
            c->lits = (Lit **)realloc(c->lits, capacity); 
          }
 
          // add to clause
-         c->lits[count] = lit;
+         c->lits[lit_count] = lit;
     	
          if(lit_index > 0) {
            // add to global literal arrays
            sat_state->lits[2 * (lit_index - 1)] = lit; 
-           // update var
+           // update var->pos
            sat_state->vars[var_index]->pos = lit;
          }else{
            sat_state->lits[2 * lit_index - 1] = lit;
            sat_state->vars[var_index]->neg = lit;
          }
-         count ++;
+
+         // update var->clauses
+         add_clause(sat_state->vars[var_index], c);
+
+         lit_count ++;
        }
 
-       c->size = count;
-       sat_state->cnf[lnum - 2] = c;
-    }
+       c->size = lit_count;
+       sat_state->cnf[clause_count] = c;
     
-    lnum ++; 
+       clause_count ++; 
+    }
   }
 
-  if (!feof(fp)) err(1, "Error occurs while reading cnf file.");
+  if (!feof(fp)){
+    printf("%s", "Error occurs while reading cnf file. Program exit.");
+    exit(1);
+  }
 	
   fclose(fp);
   if(line) free(line);
 
-  return NULL; //dummy valued
+  return sat_state;
 }
 
 //frees the SatState
