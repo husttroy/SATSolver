@@ -1,3 +1,10 @@
+/*
+ * sat_api.c
+ *
+ *  Created on: May 28, 2015
+ *      Author: troy
+ */
+
 #include "sat_api.h"
 
 /******************************************************************************
@@ -41,7 +48,7 @@ BOOLEAN sat_instantiated_var(const Var* var) {
 BOOLEAN sat_irrelevant_var(const Var* var) {
 
   // ... TO DO ...
-  
+
   return 0; //dummy valued
 }
 
@@ -55,7 +62,7 @@ c2dSize sat_var_count(const SatState* sat_state) {
 c2dSize sat_var_occurences(const Var* var) {
 
   // ... TO DO ..
-  
+
   return 0; //dummy valued
 }
 
@@ -65,12 +72,12 @@ c2dSize sat_var_occurences(const Var* var) {
 Clause* sat_clause_of_var(c2dSize index, const Var* var) {
 
   // ... TO DO ..
-  
+
   return NULL; //dummy valued
 }
 
 /******************************************************************************
- * Literals 
+ * Literals
  ******************************************************************************/
 
 //returns a literal structure for the corresponding index
@@ -99,35 +106,35 @@ Lit* sat_neg_literal(const Var* var) {
 BOOLEAN sat_implied_literal(const Lit* lit) {
 
   // ... TO DO ...
-  
+
   return 0; //dummy valued
 }
 
 //sets the literal to true, and then runs unit resolution
 //returns a learned clause if unit resolution detected a contradiction, NULL otherwise
 //
-//if the current decision level is L in the beginning of the call, it should be updated 
+//if the current decision level is L in the beginning of the call, it should be updated
 //to L+1 so that the decision level of lit and all other literals implied by unit resolution is L+1
 Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 
   // ... TO DO ...
-  
+
   return NULL; //dummy valued
 }
 
 //undoes the last literal decision and the corresponding implications obtained by unit resolution
 //
-//if the current decision level is L in the beginning of the call, it should be updated 
+//if the current decision level is L in the beginning of the call, it should be updated
 //to L-1 before the call ends
 void sat_undo_decide_literal(SatState* sat_state) {
 
   // ... TO DO ...
-  
+
   return; //dummy valued
 }
 
 /******************************************************************************
- * Clauses 
+ * Clauses
  ******************************************************************************/
 
 //returns a clause structure for the corresponding index
@@ -179,11 +186,11 @@ Clause* sat_assert_clause(Clause* clause, SatState* sat_state) {
   // check the size of the learned clause, reallocate the array when necessary
   Clause ** learns = sat_state->learns;
   int size = sat_state->learn_num;
-  int capacity = sat_state->learn_capacity; 
+  int capacity = sat_state->learn_capacity;
 
   if(size == capacity){
     capacity += 5;
-    learns = (Clause **)realloc(learns, capacity);
+    learns = (Clause **)realloc(learns, capacity * sizeof(Clause *));
     sat_state->learn_capacity = capacity;
     sat_state->learns = learns;
   }
@@ -231,7 +238,7 @@ int startsWith(const char *pre, const char *str){
 void add_clause(Var * var, Clause * clause){
   if(var->clause_num + 1 > var->clause_capacity){
     var->clause_capacity += 10;
-    var->clauses = (Clause **)realloc(var->clauses, var->clause_capacity);
+    var->clauses = (Clause **)realloc(var->clauses, var->clause_capacity * sizeof(Clause *));
   }
 
   var->clauses[var->clause_num] = clause;
@@ -240,8 +247,8 @@ void add_clause(Var * var, Clause * clause){
 //constructs a SatState from an input cnf file
 SatState* sat_state_new(const char* file_name) {
   FILE *fp = fopen(file_name, "r");
-  char * line = NULL;
-  size_t len = 0;
+  const size_t len = 1024;
+  char *line = (char *)malloc(len);
   SatState* sat_state = (SatState*)malloc(sizeof(SatState));
   sat_state->learns = NULL;
   sat_state->learn_num = 0;
@@ -255,9 +262,9 @@ SatState* sat_state_new(const char* file_name) {
     printf("%s","Cannot read the cnf file, please check if it exists or is broken. Program Exit.");
     exit(1);
   }
-  
+
   int clause_count = 0;
-  while(line = fgetln(fp, &len)) {
+  while(fgets(line, len, fp) != NULL) {
     if(startsWith("0", line) || startsWith("c", line) || startsWith("%", line) || startsWith("ccc", line)) continue; // comment line
     else if(startsWith("p", line)){
       // problem line, tokenize it
@@ -288,9 +295,10 @@ SatState* sat_state_new(const char* file_name) {
           sat_state->clause_num = clause_num;
           sat_state->cnf = (Clause **)malloc(sizeof(Clause *) * clause_num);
         }
-        
+
+        token = strtok(NULL, " ");
         count ++;
-      } 
+      }
     }else{
        // read each clause
        Clause * c = (Clause *)malloc(sizeof(Clause));
@@ -303,21 +311,22 @@ SatState* sat_state_new(const char* file_name) {
        int lit_count = 0; // count literals in this clause
        while(token){
          int lit_index = atoi(token);
-         int var_index = lit_index > 0 ? lit_index : -lit_index; 
+         if(lit_index == 0) break;
+         int var_index = lit_index > 0 ? lit_index : -lit_index;
          Lit * lit = (Lit *)malloc(sizeof(Lit));
          lit->index = lit_index;
          lit->var = sat_state->vars[var_index];
          if(lit_count >= capacity){
            capacity += 5;
-           c->lits = (Lit **)realloc(c->lits, capacity); 
+           c->lits = (Lit **)realloc(c->lits, capacity * sizeof(Lit *));
          }
 
          // add to clause
          c->lits[lit_count] = lit;
-    	
+
          if(lit_index > 0) {
            // add to global literal arrays
-           sat_state->lits[2 * (lit_index - 1)] = lit; 
+           sat_state->lits[2 * (lit_index - 1)] = lit;
            // update var->pos
            sat_state->vars[var_index]->pos = lit;
          }else{
@@ -328,13 +337,14 @@ SatState* sat_state_new(const char* file_name) {
          // update var->clauses
          add_clause(sat_state->vars[var_index], c);
 
+         token = strtok(NULL, " ");
          lit_count ++;
        }
 
        c->size = lit_count;
        sat_state->cnf[clause_count] = c;
-    
-       clause_count ++; 
+
+       clause_count ++;
     }
   }
 
@@ -342,7 +352,7 @@ SatState* sat_state_new(const char* file_name) {
     printf("%s", "Error occurs while reading cnf file. Program exit.");
     exit(1);
   }
-	
+
   fclose(fp);
   if(line) free(line);
 
@@ -353,26 +363,26 @@ SatState* sat_state_new(const char* file_name) {
 void sat_state_free(SatState* sat_state) {
 
   // ... TO DO ...
-  
+
   return; //dummy valued
 }
 
 /******************************************************************************
  * Given a SatState, which should contain data related to the current setting
- * (i.e., decided literals, subsumed clauses, decision level, etc.), this function 
- * should perform unit resolution at the current decision level 
+ * (i.e., decided literals, subsumed clauses, decision level, etc.), this function
+ * should perform unit resolution at the current decision level
  *
  * It returns 1 if succeeds, 0 otherwise (after constructing an asserting
  * clause)
  *
  * There are three possible places where you should perform unit resolution:
  * (1) after deciding on a new literal (i.e., in sat_decide_literal())
- * (2) after adding an asserting clause (i.e., in sat_assert_clause(...)) 
+ * (2) after adding an asserting clause (i.e., in sat_assert_clause(...))
  * (3) neither the above, which would imply literals appearing in unit clauses
  *
  * (3) would typically happen only once and before the other two cases
  * It may be useful to distinguish between the above three cases
- * 
+ *
  * Note if the current decision level is L, then the literals implied by unit
  * resolution must have decision level L
  *
@@ -391,7 +401,7 @@ void sat_state_free(SatState* sat_state) {
 BOOLEAN sat_unit_resolution(SatState* sat_state) {
 
   // ... TO DO ...
-  
+
   return 0; //dummy valued
 }
 
@@ -400,7 +410,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 void sat_undo_unit_resolution(SatState* sat_state) {
 
   // ... TO DO ...
-  
+
   return; //dummy valued
 }
 
@@ -412,7 +422,7 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 BOOLEAN sat_at_assertion_level(const Clause* clause, const SatState* sat_state) {
 
   // ... TO DO ...
-  
+
   return 0; //dummy valued
 }
 
@@ -457,3 +467,5 @@ void sat_unmark_clause(Clause* clause) {
 /******************************************************************************
  * end
  ******************************************************************************/
+
+

@@ -1,3 +1,10 @@
+/*
+ * sat_api.c
+ *
+ *  Created on: May 28, 2015
+ *      Author: troy
+ */
+
 #ifndef SATAPI_H_
 #define SATAPI_H_
 
@@ -24,8 +31,8 @@
  * literal is associated with a decision level. Similarly, literals which are implied
  * by unit resolution are also associated with a decision level.
  *
- * A learned clause is associated with an "assertion level". The clause can be 
- * asserted (added) to a state state only when the decision level of the sat 
+ * A learned clause is associated with an "assertion level". The clause can be
+ * asserted (added) to a state state only when the decision level of the sat
  * state equals to the clause's assertion level.
  ******************************************************************************/
 
@@ -49,7 +56,7 @@ struct clause;
 
 /******************************************************************************
  * Variables:
- * --You must represent variables using the following struct 
+ * --You must represent variables using the following struct
  * --Variable index must start at 1, and is no greater than the number of cnf variables
  * --Index of a variable must be of type "c2dSize"
  * --The field "mark" below and its related functions should not be changed
@@ -68,7 +75,7 @@ typedef struct var {
 
 /******************************************************************************
  * Literals:
- * --You must represent literals using the following struct 
+ * --You must represent literals using the following struct
  * --Positive literals' indices range from 1 to n (n is the number of cnf variables)
  * --Negative literals' indices range from -n to -1 (n is the number of cnf variables)
  * --Index of a literal must be of type "c2dLiteral"
@@ -80,8 +87,8 @@ typedef struct literal {
 } Lit;
 
 /******************************************************************************
- * Clauses: 
- * --You must represent clauses using the following struct 
+ * Clauses:
+ * --You must represent clauses using the following struct
  * --Clause index must start at 1, and is no greater than the number of cnf clauses
  * --Index of a clause must be of type "c2dSize"
  * --A clause must have an array consisting of its literals
@@ -98,7 +105,7 @@ typedef struct clause {
 } Clause;
 
 /******************************************************************************
- * SatState: 
+ * SatState:
  * --The following structure will keep track of the data needed to
  * condition/uncondition variables, perform unit resolution, and so on ...
  ******************************************************************************/
@@ -120,8 +127,8 @@ typedef struct sat_state_t {
 } SatState;
 
 /******************************************************************************
- * API: 
- * --Using the above structures you must implement the following functions 
+ * API:
+ * --Using the above structures you must implement the following functions
  * --Incomplete implementations of the functions can be found in sat_api.c
  * --These functions are all you need for the knowledge compiler
  * --You must implement each function below
@@ -129,7 +136,7 @@ typedef struct sat_state_t {
  ******************************************************************************/
 
 /******************************************************************************
- * function prototypes 
+ * function prototypes
  ******************************************************************************/
 
 /******************************************************************************
@@ -165,7 +172,7 @@ c2dSize sat_var_occurences(const Var* var);
 Clause* sat_clause_of_var(c2dSize index, const Var* var);
 
 /******************************************************************************
- * Literals 
+ * Literals
  ******************************************************************************/
 
 //returns a literal structure for the corresponding index
@@ -193,7 +200,7 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state);
 void sat_undo_decide_literal(SatState* sat_state);
 
 /******************************************************************************
- * Clauses 
+ * Clauses
  ******************************************************************************/
 
 //returns a clause structure for the corresponding index
@@ -279,3 +286,4 @@ void sat_unmark_clause(Clause* clause);
 /******************************************************************************
  * end
  ******************************************************************************/
+
