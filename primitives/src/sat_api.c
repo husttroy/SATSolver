@@ -104,8 +104,7 @@ Lit* sat_neg_literal(const Var* var) {
 //returns 1 if the literal is implied, 0 otherwise
 //a literal is implied by deciding its variable, or by inference using unit resolution
 BOOLEAN sat_implied_literal(const Lit* lit) {
-
-	return 0; //dummy valued
+	return sat_instantiated_var(lit->var);
 }
 
 //sets the literal to true, and then runs unit resolution
