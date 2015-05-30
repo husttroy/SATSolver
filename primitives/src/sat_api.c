@@ -46,10 +46,16 @@ BOOLEAN sat_instantiated_var(const Var* var) {
 
 //returns 1 if all the clauses mentioning the variable are subsumed, 0 otherwise
 BOOLEAN sat_irrelevant_var(const Var* var) {
+    int number = var->clause_num;
+    Clause** clauses = var->clauses;
 
-  // ... TO DO ...
-
-  return 0; //dummy valued
+    for (int i = 0; i < number; i++){ 
+        if(clauses[i]->subsumed == '1'){
+          return 0;
+        }
+    }
+    
+  return 1;
 }
 
 //returns the number of variables in the cnf of sat state
