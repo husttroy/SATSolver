@@ -50,7 +50,7 @@ BOOLEAN sat_irrelevant_var(const Var* var) {
     Clause** clauses = var->clauses;
 
     for (int i = 0; i < number; i++){ 
-        if(clauses[i]->subsumed == '1'){
+        if(clauses[i]->subsume == '1'){
           return 0;
         }
     }
@@ -73,10 +73,12 @@ c2dSize sat_var_occurences(const Var* var) {
 //index starts from 0, and is less than the number of clauses mentioning the variable
 //this cannot be called on a variable that is not mentioned by any clause
 Clause* sat_clause_of_var(c2dSize index, const Var* var) {
-
-  // ... TO DO ..
-
-  return NULL; //dummy valued
+		if(index<(var->clause_num-1)){			
+			return var->clauses[index];
+		}
+		else{
+			return NULL;
+		}
 }
 
 /******************************************************************************
