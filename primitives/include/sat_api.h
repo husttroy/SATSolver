@@ -84,6 +84,7 @@ typedef struct var {
 typedef struct literal {
 	c2dLiteral index;
 	Var * var;
+	int decision_level;
 } Lit;
 
 /******************************************************************************

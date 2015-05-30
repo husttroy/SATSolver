@@ -120,12 +120,14 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 		lit->var->value = 0;
 	}
 
-	sat_state->decision_level ++;
+	// update its decision level
+	lit->decision_level = sat_state->decision_level + 1;
 	if(sat_state->decision_capacity < sat_state->decision_level){
 		sat_state->decision_capacity += 5;
 		sat_state->decisions = (Lit **) realloc(sat_state->decisions, sat_state->decision_capacity * sizeof(Lit *));
 	}
 	sat_state->decisions[sat_state->decision_level - 1] = lit;
+	sat_state->decision_level ++;
 
 	if (!sat_unit_resolution(sat_state)) {
 		// find a contradiction
@@ -144,6 +146,7 @@ void sat_undo_decide_literal(SatState* sat_state) {
 	sat_state->decisions[sat_state->decision_level - 1] = NULL;
 	sat_state->decision_level --;
 	lit->var->value = -1;
+	lit->decision_level = 0;
 
 	sat_undo_unit_resolution(sat_state);
 	return;
@@ -270,7 +273,7 @@ SatState* sat_state_new(const char* file_name) {
 	sat_state->learn_num = 0;
 	sat_state->learn_capacity = 10;
 	sat_state->decisions = (Lit **)malloc(sizeof(Lit *) * 10);
-	sat_state->decision_level = 0;
+	sat_state->decision_level = 1;
 	sat_state->decision_capacity = 10;
 	sat_state->implies = NULL;
 	sat_state->asserting = NULL;
@@ -339,6 +342,7 @@ SatState* sat_state_new(const char* file_name) {
 				int var_index = lit_index > 0 ? lit_index : -lit_index;
 				Lit * lit = (Lit *) malloc(sizeof(Lit));
 				lit->index = lit_index;
+				lit->decision_level = 0;
 				lit->var = sat_state->vars[var_index];
 				if (lit_count >= capacity) {
 					capacity += 5;
