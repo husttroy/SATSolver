@@ -301,9 +301,9 @@ SatState* sat_state_new(const char* file_name) {
 						var->index = i + 1;
 						var->pos = NULL;
 						var->neg = NULL;
-						var->clauses = NULL;
+						var->clauses = (Clause **) malloc(sizeof(Clause *) * 10);
 						var->clause_num = 0;
-						var->clause_capacity = 0;
+						var->clause_capacity = 10;
 						var->value = -1;
 						sat_state->vars[i] = var;
 					}
@@ -386,10 +386,25 @@ SatState* sat_state_new(const char* file_name) {
 
 //frees the SatState
 void sat_state_free(SatState* sat_state) {
+	for(int i = 0; i < sat_state->var_num; i++){
+		free(sat_state->vars[i]->clauses);
+		free(sat_state->vars[i]);
+	}
 
-	// ... TO DO ...
+	for(int i = 0; i < sat_state->lit_num; i++){
+		free(sat_state->lits[i]);
+	}
 
-	return;//dummy valued
+	for(int i = 0; i < sat_state->clause_num; i++){
+		free(sat_state->cnf[i]->lits);
+		free(sat_state->cnf[i]);
+	}
+
+	free(sat_state->learns);
+	free(sat_state->decisions);
+	free(sat_state->implies);
+	free(sat_state);
+	return;
 }
 
 /******************************************************************************
