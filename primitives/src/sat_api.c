@@ -73,8 +73,8 @@ c2dSize sat_var_occurences(const Var* var) {
 //index starts from 0, and is less than the number of clauses mentioning the variable
 //this cannot be called on a variable that is not mentioned by any clause
 Clause* sat_clause_of_var(c2dSize index, const Var* var) {
-		if(index<(var->clause_num-1)){			
-			return var->clauses[index];
+		if(index<(var->clause_num)){			
+			return var->clauses[index-1];
 		}
 		else{
 			return NULL;
