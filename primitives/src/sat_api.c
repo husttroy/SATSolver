@@ -51,6 +51,7 @@ BOOLEAN sat_irrelevant_var(const Var* var) {
 		Clause * clause = clauses[i];
 		if(!clause->subsume) return 0;
 	}
+
 	return 1;
 }
 
@@ -128,7 +129,7 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 
 	if (!sat_unit_resolution(sat_state)) {
 		// find a contradiction
-		sat_state->asserting;
+		return sat_state->asserting;
 	}else{
 		return NULL;
 	}
@@ -139,10 +140,13 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 //if the current decision level is L in the beginning of the call, it should be updated
 //to L-1 before the call ends
 void sat_undo_decide_literal(SatState* sat_state) {
+	Lit * lit = sat_state->decisions[sat_state->decision_level - 1];
+	sat_state->decisions[sat_state->decision_level - 1] = NULL;
+	sat_state->decision_level --;
+	lit->var->value = -1;
 
-	// ... TO DO ...
-
-	return;//dummy valued
+	sat_undo_unit_resolution(sat_state);
+	return;
 }
 
 /******************************************************************************
@@ -262,11 +266,12 @@ SatState* sat_state_new(const char* file_name) {
 	const size_t len = 1024;
 	char *line = (char *) malloc(len);
 	SatState* sat_state = (SatState*) malloc(sizeof(SatState));
-	sat_state->learns = NULL;
+	sat_state->learns = (Clause **)malloc(sizeof(Clause *) * 10);
 	sat_state->learn_num = 0;
-	sat_state->learn_capacity = 0;
-	sat_state->decisions = NULL;
+	sat_state->learn_capacity = 10;
+	sat_state->decisions = (Lit **)malloc(sizeof(Lit *) * 10);
 	sat_state->decision_level = 0;
+	sat_state->decision_capacity = 10;
 	sat_state->implies = NULL;
 	sat_state->asserting = NULL;
 
