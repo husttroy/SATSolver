@@ -52,7 +52,17 @@ BOOLEAN sat_irrelevant_var(const Var* var) {
 		if(!clause->subsume) return 0;
 	}
 
+<<<<<<< HEAD
 	return 1;
+=======
+    for (int i = 0; i < number; i++){ 
+        if(clauses[i]->subsume == 1){
+          return 0;
+        }
+    }
+    
+  return 1;
+>>>>>>> 04c23afe320903fcb684e73b37a6dbd4ca4a3140
 }
 
 //returns the number of variables in the cnf of sat state
