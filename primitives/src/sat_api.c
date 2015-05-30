@@ -66,10 +66,7 @@ c2dSize sat_var_count(const SatState* sat_state) {
 //returns the number of clauses mentioning a variable
 //a variable is mentioned by a clause if one of its literals appears in the clause
 c2dSize sat_var_occurences(const Var* var) {
-
-  // ... TO DO ..
-
-  return 0; //dummy valued
+    return var->clause_num;
 }
 
 //returns the index^th clause that mentions a variable
