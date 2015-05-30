@@ -50,7 +50,7 @@ BOOLEAN sat_irrelevant_var(const Var* var) {
     Clause** clauses = var->clauses;
 
     for (int i = 0; i < number; i++){ 
-        if(clauses[i]->subsume == '1'){
+        if(clauses[i]->subsume == 1){
           return 0;
         }
     }
