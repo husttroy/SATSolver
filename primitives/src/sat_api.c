@@ -113,10 +113,25 @@ BOOLEAN sat_implied_literal(const Lit* lit) {
 //if the current decision level is L in the beginning of the call, it should be updated
 //to L+1 so that the decision level of lit and all other literals implied by unit resolution is L+1
 Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
+	if(lit->index > 0){
+		lit->var->value = 1;
+	}else{
+		lit->var->value = 0;
+	}
 
-	// ... TO DO ...
+	sat_state->decision_level ++;
+	if(sat_state->decision_capacity < sat_state->decision_level){
+		sat_state->decision_capacity += 5;
+		sat_state->decisions = (Lit **) realloc(sat_state->decisions, sat_state->decision_capacity * sizeof(Lit *));
+	}
+	sat_state->decisions[sat_state->decision_level - 1] = lit;
 
-	return NULL; //dummy valued
+	if (!sat_unit_resolution(sat_state)) {
+		// find a contradiction
+		sat_state->asserting;
+	}else{
+		return NULL;
+	}
 }
 
 //undoes the last literal decision and the corresponding implications obtained by unit resolution

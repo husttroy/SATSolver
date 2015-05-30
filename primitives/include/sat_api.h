@@ -63,14 +63,14 @@ struct clause;
  ******************************************************************************/
 
 typedef struct var {
-  c2dSize index;
-  struct literal * pos;
-  struct literal * neg;
-  struct clause ** clauses;
-  int clause_num;
-  int clause_capacity;
-  int value;  // 1 --> true, 0 --> false, -1 --> unset
-  BOOLEAN mark; //THIS FIELD MUST STAY AS IS
+	c2dSize index;
+	struct literal * pos;
+	struct literal * neg;
+	struct clause ** clauses;
+	int clause_num;
+	int clause_capacity;
+	int value;  // 1 --> true, 0 --> false, -1 --> unset
+	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Var;
 
 /******************************************************************************
@@ -82,8 +82,8 @@ typedef struct var {
  ******************************************************************************/
 
 typedef struct literal {
-  c2dLiteral index;
-  Var * var;
+	c2dLiteral index;
+	Var * var;
 } Lit;
 
 /******************************************************************************
@@ -97,11 +97,11 @@ typedef struct literal {
  ******************************************************************************/
 
 typedef struct clause {
-  c2dSize index;
-  Lit** lits;
-  int size;
-  BOOLEAN subsume;
-  BOOLEAN mark; //THIS FIELD MUST STAY AS IS
+	c2dSize index;
+	Lit** lits;
+	int size;
+	BOOLEAN subsume;
+	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Clause;
 
 /******************************************************************************
@@ -111,19 +111,20 @@ typedef struct clause {
  ******************************************************************************/
 
 typedef struct sat_state_t {
-  Var ** vars;
-  int var_num;
-  Lit ** lits;
-  int lit_num;
-  Clause ** cnf;
-  int clause_num;
-  Clause ** learns;
-  int learn_num;
-  int learn_capacity;
-  Lit ** decisions;
-  int decision_level; // current decision level, it is also the size of the decision sequence
-  Lit ** implies;
-  Clause * asserting;
+	Var ** vars;
+	int var_num;
+	Lit ** lits;
+	int lit_num;
+	Clause ** cnf;
+	int clause_num;
+	Clause ** learns;
+	int learn_num;
+	int learn_capacity;
+	Lit ** decisions;
+	int decision_level; // current decision level, it is also the size of the decision sequence
+	int decision_capacity;
+	Lit ** implies;
+	Clause * asserting;
 } SatState;
 
 /******************************************************************************
@@ -190,7 +191,6 @@ Lit* sat_neg_literal(const Var* var);
 //returns 1 if the literal is implied, 0 otherwise
 //a literal is implied by deciding its variable, or by inference using unit resolution
 BOOLEAN sat_implied_literal(const Lit* lit);
-
 
 //sets the literal to true, and then runs unit resolution
 //returns a learned clause if unit resolution detected a contradiction, NULL otherwise
