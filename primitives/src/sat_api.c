@@ -332,6 +332,7 @@ SatState* sat_state_new(const char* file_name) {
 			int capacity = 5;
 			c->lits = (Lit **) malloc(sizeof(Lit *) * capacity);
 			c->subsume = 0;
+			c->assertion_level = 0;
 
 			char * token = strtok(line, " ");
 			int lit_count = 0; // count literals in this clause
@@ -465,8 +466,6 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 //this function is called after sat_decide_literal() or sat_assert_clause() returns clause.
 //it is used to decide whether the sat state is at the right decision level for adding clause.
 BOOLEAN sat_at_assertion_level(const Clause* clause, const SatState* sat_state) {
-
-	// ... TO DO ...
 
 	return 0; //dummy valued
 }

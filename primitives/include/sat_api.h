@@ -102,6 +102,7 @@ typedef struct clause {
 	Lit** lits;
 	int size;
 	BOOLEAN subsume;
+	int assertion_level;
 	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Clause;
 
