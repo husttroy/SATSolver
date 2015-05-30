@@ -178,7 +178,7 @@ c2dSize sat_clause_size(const Clause* clause) {
 BOOLEAN sat_subsumed_clause(const Clause* clause) {
 	for (int i = 0; i < clause->size; i++) {
 		Lit * litp = clause->lits[i];
-		if (litp->var->value == 1)
+		if ((litp->index > 0 && litp->var->value == 1) || (litp->index < 0 && litp->var->value == 0))
 			return 1;
 	}
 	return 0;
