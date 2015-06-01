@@ -85,6 +85,7 @@ typedef struct literal {
 	c2dLiteral index;
 	Var * var;
 	int decision_level;
+	struct clause * reason;
 } Lit;
 
 /******************************************************************************
@@ -126,6 +127,8 @@ typedef struct sat_state_t {
 	int decision_level; // current decision level, it is also the size of the decision sequence
 	int decision_capacity;
 	Lit ** implies;
+	int implies_num;
+	int implies_capacity;
 	Clause * asserting;
 } SatState;
 
