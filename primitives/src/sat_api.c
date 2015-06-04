@@ -85,7 +85,11 @@ Clause* sat_clause_of_var(c2dSize index, const Var* var) {
 //returns a literal structure for the corresponding index
 Lit* sat_index2literal(c2dLiteral index, const SatState* sat_state) {
 	Lit ** lits = sat_state->lits;
-	return lits[index - 1];
+	if (index > 0) {
+		return lits[2 * index - 1];
+	} else {
+		return lits[2 * (-index)];
+	}
 }
 
 //returns the index of a literal
@@ -258,7 +262,7 @@ void add_clause(Var * var, Clause * clause) {
 	}
 
 	var->clauses[var->clause_num] = clause;
-	var->clause_num ++;
+	var->clause_num++;
 }
 
 //constructs a SatState from an input cnf file
@@ -287,7 +291,8 @@ SatState* sat_state_new(const char* file_name) {
 	int clause_count = 0;
 	while (fgets(line, len, fp) != NULL) {
 		if (startsWith("0", line) || startsWith("c", line)
-				|| startsWith("%", line) || startsWith("ccc", line))
+				|| startsWith("%", line) || startsWith("ccc", line)
+				|| startsWith("cc", line))
 			continue; // comment line
 		else if (startsWith("p", line)) {
 			// problem line, tokenize it
@@ -314,6 +319,21 @@ SatState* sat_state_new(const char* file_name) {
 
 					sat_state->lits = (Lit **) malloc(
 							sizeof(Lit *) * var_num * 2);
+					for (int i = 0; i < var_num; i++) {
+						Lit * pos = (Lit *) malloc(sizeof(Lit));
+						pos->index = i + 1;
+						pos->decision_level = 0;
+						pos->reason = NULL;
+						pos->var = sat_state->vars[i];
+						Lit * neg = (Lit *) malloc(sizeof(Lit));
+						neg->index = -(i + 1);
+						neg->decision_level = 0;
+						neg->reason = NULL;
+						neg->var = sat_state->vars[i];
+
+						sat_state->vars[i]->pos = pos;
+						sat_state->vars[i]->neg = neg;
+					}
 				} else if (count == 3) {
 					// read clause number
 					int clause_num = atoi(token);
@@ -342,11 +362,6 @@ SatState* sat_state_new(const char* file_name) {
 				if (lit_index == 0)
 					break;
 				int var_index = lit_index > 0 ? lit_index : -lit_index;
-				Lit * lit = (Lit *) malloc(sizeof(Lit));
-				lit->index = lit_index;
-				lit->decision_level = 0;
-				lit->var = sat_state->vars[var_index];
-				lit->reason = NULL;
 				if (lit_count >= capacity) {
 					capacity += 5;
 					c->lits = (Lit **) realloc(c->lits,
@@ -354,17 +369,8 @@ SatState* sat_state_new(const char* file_name) {
 				}
 
 				// add to clause
+				Lit * lit = sat_index2literal(lit_index, sat_state);
 				c->lits[lit_count] = lit;
-
-				if (lit_index > 0) {
-					// add to global literal arrays
-					sat_state->lits[2 * (lit_index - 1)] = lit;
-					// update var->pos
-					sat_state->vars[var_index - 1]->pos = lit;
-				} else {
-					sat_state->lits[2 * (- lit_index) - 1] = lit;
-					sat_state->vars[var_index - 1]->neg = lit;
-				}
 
 				// update var->clauses
 				add_clause(sat_state->vars[var_index - 1], c);
@@ -623,18 +629,18 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 //after sat_unit_resolution()
 void sat_undo_unit_resolution(SatState* sat_state) {
 	int dlevel = sat_state->decision_level;
-	for(int i = sat_state->implies_num; i > -1; i--){
-		if(sat_state->implies[i]->decision_level == dlevel){
+	for (int i = sat_state->implies_num; i > -1; i--) {
+		if (sat_state->implies[i]->decision_level == dlevel) {
 			sat_state->implies[i]->var->value = -1;
 			sat_state->implies[i]->reason = NULL;
 			sat_state->implies[i]->decision_level = 0;
 			sat_state->implies[i] = NULL;
-			sat_state->implies_num --;
+			sat_state->implies_num--;
 		}
 	}
 
 	// recompute if clause is subsumed
-	for (int i = 0; i < sat_state->clause_num + + sat_state->learn_num; i++) {
+	for (int i = 0; i < sat_state->clause_num + +sat_state->learn_num; i++) {
 		Clause * clause;
 		if (i < sat_state->clause_num) {
 			clause = sat_state->cnf[i];
@@ -642,7 +648,7 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 			clause = sat_state->learns[i - sat_state->clause_num];
 		}
 
-		if(clause->subsume){
+		if (clause->subsume) {
 			clause->subsume = 0;
 			// recompute the result of the clause
 			for (int j = 0; j < clause->size; j++) {
@@ -658,12 +664,12 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 	}
 
 	// free the learned clause
-	if(sat_state->asserting != NULL){
+	if (sat_state->asserting != NULL) {
 		free(sat_state->asserting->lits);
 		free(sat_state->asserting);
 	}
 	sat_state->asserting = NULL;
-	return;//dummy valued
+	return; //dummy valued
 }
 
 //returns 1 if the decision level of the sat state equals to the assertion level of clause,
