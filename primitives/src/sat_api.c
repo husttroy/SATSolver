@@ -319,6 +319,7 @@ SatState* sat_state_new(const char* file_name) {
 
 					sat_state->lits = (Lit **) malloc(
 							sizeof(Lit *) * var_num * 2);
+					sat_state->lit_num = var_num * 2;
 					for (int i = 0; i < var_num; i++) {
 						Lit * pos = (Lit *) malloc(sizeof(Lit));
 						pos->index = i + 1;
