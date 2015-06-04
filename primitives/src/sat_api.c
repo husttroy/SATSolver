@@ -359,14 +359,14 @@ SatState* sat_state_new(const char* file_name) {
 					// add to global literal arrays
 					sat_state->lits[2 * (lit_index - 1)] = lit;
 					// update var->pos
-					sat_state->vars[var_index]->pos = lit;
+					sat_state->vars[var_index - 1]->pos = lit;
 				} else {
 					sat_state->lits[2 * lit_index - 1] = lit;
-					sat_state->vars[var_index]->neg = lit;
+					sat_state->vars[var_index - 1]->neg = lit;
 				}
 
 				// update var->clauses
-				add_clause(sat_state->vars[var_index], c);
+				add_clause(sat_state->vars[var_index - 1], c);
 
 				token = strtok(NULL, " ");
 				lit_count++;
