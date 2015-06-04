@@ -332,6 +332,8 @@ SatState* sat_state_new(const char* file_name) {
 						neg->reason = NULL;
 						neg->var = sat_state->vars[i];
 
+						sat_state->lits[2 * i - 1] = pos;
+						sat_state->lits[2 * i] = neg;
 						sat_state->vars[i]->pos = pos;
 						sat_state->vars[i]->neg = neg;
 					}
