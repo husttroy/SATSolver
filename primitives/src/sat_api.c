@@ -86,9 +86,9 @@ Clause* sat_clause_of_var(c2dSize index, const Var* var) {
 Lit* sat_index2literal(c2dLiteral index, const SatState* sat_state) {
 	Lit ** lits = sat_state->lits;
 	if (index > 0) {
-		return lits[2 * index - 1];
+		return lits[2 * (index - 1)];
 	} else {
-		return lits[2 * (-index)];
+		return lits[2 * (-index) - 1];
 	}
 }
 
