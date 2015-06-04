@@ -258,6 +258,7 @@ void add_clause(Var * var, Clause * clause) {
 	}
 
 	var->clauses[var->clause_num] = clause;
+	var->clause_num ++;
 }
 
 //constructs a SatState from an input cnf file
@@ -361,7 +362,7 @@ SatState* sat_state_new(const char* file_name) {
 					// update var->pos
 					sat_state->vars[var_index - 1]->pos = lit;
 				} else {
-					sat_state->lits[2 * lit_index - 1] = lit;
+					sat_state->lits[2 * (- lit_index) - 1] = lit;
 					sat_state->vars[var_index - 1]->neg = lit;
 				}
 
@@ -597,6 +598,10 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 
 						resolvent->size = index;
 						learn = resolvent;
+
+						// free resolvent
+						free(resolvent->lits);
+						free(resolvent);
 					}
 
 					// set assertion level
@@ -617,9 +622,47 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 //undoes sat_unit_resolution(), leading to un-instantiating variables that have been instantiated
 //after sat_unit_resolution()
 void sat_undo_unit_resolution(SatState* sat_state) {
+	int dlevel = sat_state->decision_level;
+	for(int i = sat_state->implies_num; i > -1; i--){
+		if(sat_state->implies[i]->decision_level == dlevel){
+			sat_state->implies[i]->var->value = -1;
+			sat_state->implies[i]->reason = NULL;
+			sat_state->implies[i]->decision_level = 0;
+			sat_state->implies[i] = NULL;
+			sat_state->implies_num --;
+		}
+	}
 
-	// ... TO DO ...
+	// recompute if clause is subsumed
+	for (int i = 0; i < sat_state->clause_num + + sat_state->learn_num; i++) {
+		Clause * clause;
+		if (i < sat_state->clause_num) {
+			clause = sat_state->cnf[i];
+		} else {
+			clause = sat_state->learns[i - sat_state->clause_num];
+		}
 
+		if(clause->subsume){
+			clause->subsume = 0;
+			// recompute the result of the clause
+			for (int j = 0; j < clause->size; j++) {
+				Lit * litp = clause->lits[j];
+				if ((litp->index > 0 && litp->var->value == 1)
+						|| (litp->index < 0 && litp->var->value == 0)) {
+					// this literal is true, the clause is subsumed
+					clause->subsume = 1;
+					break;
+				}
+			}
+		}
+	}
+
+	// free the learned clause
+	if(sat_state->asserting != NULL){
+		free(sat_state->asserting->lits);
+		free(sat_state->asserting);
+	}
+	sat_state->asserting = NULL;
 	return;//dummy valued
 }
 
