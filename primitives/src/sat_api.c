@@ -11,7 +11,16 @@ void print_CNF (SatState* sat);
 
 void print_State (SatState* sat);
 
-
+/******************************************************************************
+ * We explain here the functions you need to implement
+ *
+ * Rules:
+ * --You cannot change any parts of the function signatures
+ * --You can/should define auxiliary functions to help implementation
+ * --You can implement the functions in different files if you wish
+ * --That is, you do not need to put everything in a single file
+ * --You should carefully read the descriptions and must follow each requirement
+ ******************************************************************************/
 
 
 /******************************************************************************
