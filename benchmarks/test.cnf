@@ -1,0 +1,9 @@
+c test.cnf
+c Decide = {1,2,3} learn {-1,-4} back to level 0
+c Implied = {-2, -3, -4}
+c Decide = {1,5} return true
+p cnf 5 4
+-1 -4 5 0
+-3 4 0
+-4 -5 0
+-2 3 4 0
