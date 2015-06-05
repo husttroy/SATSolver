@@ -126,7 +126,7 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 	}
 
 	// update its decision level
-	lit->decision_level = sat_state->decision_level + 1;
+	lit->var->decision_level = sat_state->decision_level + 1;
 	if (sat_state->decision_capacity < sat_state->decision_level) {
 		sat_state->decision_capacity += 5;
 		sat_state->decisions = (Lit **) realloc(sat_state->decisions,
@@ -148,11 +148,11 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 //if the current decision level is L in the beginning of the call, it should be updated
 //to L-1 before the call ends
 void sat_undo_decide_literal(SatState* sat_state) {
-	Lit * lit = sat_state->decisions[sat_state->decision_level - 1];
-	sat_state->decisions[sat_state->decision_level - 1] = NULL;
+	Lit * lit = sat_state->decisions[sat_state->decision_level - 2]; // decision sequence is empty in level 1, so the array index is actually level - 2
+	sat_state->decisions[sat_state->decision_level - 2] = NULL;
 	sat_state->decision_level--;
 	lit->var->value = -1;
-	lit->decision_level = 0;
+	lit->var->decision_level = 0;
 
 	sat_undo_unit_resolution(sat_state);
 	return;
@@ -314,6 +314,8 @@ SatState* sat_state_new(const char* file_name) {
 						var->clause_num = 0;
 						var->clause_capacity = 10;
 						var->value = -1;
+						var->decision_level = 0;
+						var->reason = NULL;
 						sat_state->vars[i] = var;
 					}
 
@@ -323,13 +325,9 @@ SatState* sat_state_new(const char* file_name) {
 					for (int i = 0; i < var_num; i++) {
 						Lit * pos = (Lit *) malloc(sizeof(Lit));
 						pos->index = i + 1;
-						pos->decision_level = 0;
-						pos->reason = NULL;
 						pos->var = sat_state->vars[i];
 						Lit * neg = (Lit *) malloc(sizeof(Lit));
 						neg->index = -(i + 1);
-						neg->decision_level = 0;
-						neg->reason = NULL;
 						neg->var = sat_state->vars[i];
 
 						sat_state->lits[2 * i] = pos;
@@ -458,7 +456,7 @@ BOOLEAN is_asserting(Clause * clause, SatState * sat_state) {
 	int count = 0;
 	for (int i = 0; i < clause->size; i++) {
 		Lit* lit = clause->lits[i];
-		if (lit->decision_level == sat_state->decision_level) {
+		if (lit->var->decision_level == sat_state->decision_level) {
 			count++;
 		}
 	}
@@ -486,11 +484,11 @@ int get_assertion_level(Clause * clause) {
 	int second = 0;
 	for (int i = 0; i < clause->size; i++) {
 		Lit * lit = clause->lits[i];
-		if (lit->decision_level > max) {
-			max = lit->decision_level;
+		if (lit->var->decision_level > max) {
+			max = lit->var->decision_level;
 			second = max;
-		} else if (lit->decision_level > second) {
-			second = lit->decision_level;
+		} else if (lit->var->decision_level > second) {
+			second = lit->var->decision_level;
 		}
 	}
 
@@ -552,8 +550,8 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 					}
 
 					unset_lit->var->value = value;
-					unset_lit->reason = clause;
-					unset_lit->decision_level = sat_state->decision_level;
+					unset_lit->var->reason = clause;
+					unset_lit->var->decision_level = sat_state->decision_level;
 					clause->subsume = 1;
 
 					if (sat_state->implies_num + 1
@@ -571,12 +569,12 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 					while (!is_asserting(learn, sat_state)) {
 						// find the implication of the last falsified literal
 						Lit* lit = get_implication(learn, sat_state);
-						Clause * reason = lit->reason;
+						Clause * reason = lit->var->reason;
 
 						// resolve the un-asserting clause and the reason
 						Clause * resolvent = (Clause *) malloc(sizeof(Clause));
 						resolvent->index = sat_state->clause_num
-								+ sat_state->learn_num;
+								+ sat_state->learn_num + 1;
 						resolvent->lits = (Lit **) malloc(
 								sizeof(Lit *) * (learn->size + reason->size));
 						int index = 0;
@@ -589,13 +587,14 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 							}
 
 							if (lit2->index != lit->index
-									|| lit2->index + lit->index != 0) {
+									&& lit2->index + lit->index != 0) {
 								BOOLEAN redundant = 0;
 								for (int j = 0; j < index; j++) {
 									// avoid adding redundant literal
 									if (lit2->index
 											== resolvent->lits[j]->index) {
 										redundant = 1;
+										break;
 									}
 								}
 								if (!redundant) {
@@ -606,11 +605,12 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 						}
 
 						resolvent->size = index;
+						if(learn->index > sat_state->clause_num + sat_state->learn_num){
+							// free the intermediate learned clause
+							free(learn->lits);
+							free(learn);
+						}
 						learn = resolvent;
-
-						// free resolvent
-						free(resolvent->lits);
-						free(resolvent);
 					}
 
 					// set assertion level
@@ -632,11 +632,11 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 //after sat_unit_resolution()
 void sat_undo_unit_resolution(SatState* sat_state) {
 	int dlevel = sat_state->decision_level;
-	for (int i = sat_state->implies_num; i > -1; i--) {
-		if (sat_state->implies[i]->decision_level == dlevel) {
+	for (int i = sat_state->implies_num - 1; i > -1; i--) {
+		if (sat_state->implies[i]->var->decision_level == dlevel) {
 			sat_state->implies[i]->var->value = -1;
-			sat_state->implies[i]->reason = NULL;
-			sat_state->implies[i]->decision_level = 0;
+			sat_state->implies[i]->var->reason = NULL;
+			sat_state->implies[i]->var->decision_level = 0;
 			sat_state->implies[i] = NULL;
 			sat_state->implies_num--;
 		}
@@ -672,7 +672,7 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 		free(sat_state->asserting);
 	}
 	sat_state->asserting = NULL;
-	return; //dummy valued
+	return;
 }
 
 //returns 1 if the decision level of the sat state equals to the assertion level of clause,

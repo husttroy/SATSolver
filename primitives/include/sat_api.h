@@ -70,6 +70,8 @@ typedef struct var {
 	int clause_num;
 	int clause_capacity;
 	int value;  // 1 --> true, 0 --> false, -1 --> unset
+	int decision_level;
+	struct clause * reason;
 	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Var;
 
@@ -84,8 +86,6 @@ typedef struct var {
 typedef struct literal {
 	c2dLiteral index;
 	Var * var;
-	int decision_level;
-	struct clause * reason;
 } Lit;
 
 /******************************************************************************
