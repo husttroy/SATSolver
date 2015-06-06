@@ -150,11 +150,11 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 void sat_undo_decide_literal(SatState* sat_state) {
 	Lit * lit = sat_state->decisions[sat_state->decision_level - 2]; // decision sequence is empty in level 1, so the array index is actually level - 2
 	sat_state->decisions[sat_state->decision_level - 2] = NULL;
-	sat_state->decision_level--;
 	lit->var->value = -1;
 	lit->var->decision_level = 0;
 
 	sat_undo_unit_resolution(sat_state);
+	sat_state->decision_level--;
 	return;
 }
 
@@ -501,6 +501,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 	int old = sat_state->implies_num;
 
 	do {
+		old = sat_state->implies_num;
 		for (int i = 0; i < sat_state->clause_num + sat_state->learn_num; i++) {
 			Clause * clause;
 			if (i < sat_state->clause_num) {
@@ -666,11 +667,6 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 		}
 	}
 
-	// free the learned clause
-//	if (sat_state->asserting != NULL) {
-//		free(sat_state->asserting->lits);
-//		free(sat_state->asserting);
-//	}
 	sat_state->asserting = NULL;
 	return;
 }
