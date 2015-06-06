@@ -1,0 +1,282 @@
+% CS 264A - Project Report
+% Yuan He & Tianyi Zhang
+
+
+\documentclass[11pt]{llncs}
+
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amssymb}
+% \setcounter{tocdepth}{3}
+\usepackage{graphicx}
+\usepackage{tikz} 
+\usetikzlibrary{arrows}
+\usepackage{listings}
+\usepackage{enumerate}
+% \usepackage{textcomp}
+\usepackage{textcomp}
+
+
+%==================== lgorithm2e Setting ====================
+\usepackage[lined,commentsnumbered,linesnumbered,vlined,ruled]{algorithm2e}
+\DontPrintSemicolon
+
+
+
+\bibliographystyle{plain}
+
+
+
+\newtheorem{thm}{Theorem}
+\newtheorem{inv}{Invariant}
+\newtheorem{lem}{Lemma}
+
+
+\usepackage{courier}
+
+
+
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+\lstset{
+backgroundcolor=\color{lbcolor},
+    tabsize=4,    
+%   rulecolor=,
+    language=[GNU]C++,
+        basicstyle=\scriptsize,
+        upquote=true,
+        aboveskip={1.5\baselineskip},
+        columns=fixed,
+        showstringspaces=false,
+        extendedchars=false,
+        breaklines=true,
+        prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+        frame=single,
+        numbers=left,
+        showtabs=false,
+        showspaces=false,
+        showstringspaces=false,
+        identifierstyle=\ttfamily,
+        keywordstyle=\color[rgb]{0,0,1},
+        commentstyle=\color[rgb]{0.026,0.112,0.095},
+        stringstyle=\color[rgb]{0.627,0.126,0.941},
+        numberstyle=\color[rgb]{0.205, 0.142, 0.73},
+%        \lstdefinestyle{C++}{language=C++,style=numbers}’.
+}
+\lstset{
+    backgroundcolor=\color{lbcolor},
+    tabsize=4,
+  language=C++,
+  captionpos=b,
+  tabsize=3,
+  frame=lines,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=5pt,
+  breaklines=true,
+  showstringspaces=false,
+  basicstyle=\footnotesize,
+%  identifierstyle=\color{magenta},
+  keywordstyle=\color[rgb]{0,0,1},
+  commentstyle=\color{gray},
+  stringstyle=\color{red}
+  }
+
+\renewcommand{\labelitemi}{$\bullet$}
+
+
+\usepackage{url}
+\urldef{\mailsa}\path|{alfred.hofmann, ursula.barth, ingrid.haas, frank.holzwarth,|
+\urldef{\mailsb}\path|anna.kramer, leonie.kunz, christine.reiss, nicole.sator,|
+\urldef{\mailsc}\path|erika.siebert-cole, peter.strasser, lncs}@springer.com|    
+\newcommand{\keywords}[1]{\par\addvspace\baselineskip
+\noindent\keywordname\enspace\ignorespaces#1}
+
+\begin{document}
+
+\mainmatter  % start of an individual contribution
+
+% first the title is needed
+\title{CS 264A - Project Report}
+
+% a short form should be given in case it is too long for the running head
+\titlerunning{CS 264A - Project Report}
+
+% the name(s) of the author(s) follow(s) next
+%
+% NB: Chinese authors should write their first names(s) in front of
+% their surnames. This ensures that the names appear correctly in
+% the running heads and the author index.
+%
+\author{Yuan He \and Tianyi Zhang}%
+
+%
+\authorrunning{Yuan He \and Tianyi Zhang}
+% (feature abused for this document to repeat the title also on left hand pages)
+% the affiliations are given next; don't give your e-mail address
+% unless you accept that it will be published
+\institute{}
+
+%
+% NB: a more complex sample for affiliations and the mapping to the
+% corresponding authors can be found in the file "llncs.dem"
+% (search for the string "\mainmatter" where a contribution starts).
+% "llncs.dem" accompanies the document class "llncs.cls".
+%
+\maketitle
+\setcounter{page}{1}
+\pagestyle{plain}
+\section{Data Structure}
+
+The data structure that we used in the the SAT primitive includes var, literal, clause and sat\_state\_t.
+
+\begin{itemize}
+% \setlength{\itemsep}{3pt}
+  \item \textbf{BOOLEAN}: represents the value of the boolean variable
+
+  \item \textbf{c2dSize}: Index for boolean variables
+
+  \item \textbf{c2dListeral}: Index for boolean variables
+
+  \item \textbf{c2dWmc}: for (weighted) model count
+
+  \item \textbf{var}: It describes the variables that the input CNF uses.
+  Other that ``index'' denote the its index in all variables that used in the CNF, two pointers ``pos'' and ``neg'' points the positive literal and negative literal for the current variable.
+  The ``clauses'' points to all clauses that mentioned the current variable and ``clauses\_num'' counts the total number of such clauses.
+  ``clause\_capacity'' is used for memory allocation efficiency.
+  The ``value'' represents the actually value of the variable.
+
+  \item \textbf{literal}: It describes the literal that appear in the CNFs.
+  ``index'' denotes the literal index among all CNF.
+  A positive index denote a positive literal and vice versa.
+  Variable pointer ``var'' points to the variable of the current literal.
+  ``decision\_level'' is used in the SAT algorithm.
+  If a literal is decided by the algorithm or implied by the unit resolution, ``decision\_level'' is set to be the current decision level of the SAT algorithm.
+  The clause pointer ``reason'' is used in generating the asserting clause.
+  If the current literal is implied in the unit resolution, the ``reason'' points to the clause that implies the literal during unite resolution.
+
+  \item \textbf{clause}: ``index'' represents clause index in the input CNF.
+  ``lits'' points to the literal array that in the current clause.
+  ``size'' is the total number of literals in the current clause.
+  In the unit resolution, if the current clause is subsumed, we set ``subsume'' to be true.
+  If the current clause is a assertion clause, ``assertion\_level'' is set to be the assertion level.
+
+  \item \textbf{sat\_state\_t}: ``vars'' points to all variables that are used in the CNF.
+  ``var\_num'' is the total number of variables in the CNF.
+  ``lits'' points to all literals in the CNF.
+  ``lit\_num'' is the total number of literals.
+  ``cnf'' points to the all clauses in the original CNF.
+  ``learns'' saves all learn clauses in the unit resolution.
+  ``learn\_num'' is the total number of clauses.
+  ``learn\_capacity'' is used in allocating and reallocating the clauses.
+  ``decisions'' points to the decided literal array.
+  ``decision\_level'' represents d the current decision level.
+  ``implies'' and ``implies\_num'' represents the literals and the number of literals that are implied in the unit resolution.
+  ``asserting'' is the asserting clause that are generated when unit resolution found a conflict.
+\end{itemize}
+
+\lstinputlisting{code/dataStructure.h}
+\section{Implementation}
+
+\subsection{Unit Resolution}
+
+The algorithm of the unit resolution is depicted as Algorithm \ref{unit}.
+Here, we briefly describe our algorithm.
+The input is a SAT state $\Delta$.
+$I$ is the set of implied literals, it is actually a part in SAT state $\Delta$.
+The algorithm body is a do while loop.
+For every clauses (input CNF and learned clauses), it first checks whether the clause is subsumed.
+If the clause is not subsumed, it check whether there exists only one literal is not set.
+If so, it simply implies that literal and then adds it in the implied literals.
+If all literals in the clause are falsified, then this clause is a empty clause, which is a contradiction.
+Therefore, we generate the learning clause using Algorithm \ref{learned} and then return false.
+If no new literal is implied in previous iteration, the algorithm return true,other wise the algorithm recheck all clauses again until it finds a contraction or no more literal is implied.
+
+
+Note that, in unit resolution, we track the reason clause of every implied literal and decided literal.
+The reason clause is used for conveniently generate the UIP learned clause in Algorithm \ref{learned}.
+
+
+
+\begin{algorithm}[H]
+\label{unit}
+\caption{Unit Resolution ($\Delta$)}
+
+\SetKwData{Left}{left}\SetKwData{This}{this}\SetKwData{Up}{up}
+\SetKwFunction{Union}{Union}\SetKwFunction{FindCompress}{FindCompress}
+\SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+\SetKwData{True}{true}  \SetKwData{False}{false}
+\SetKwRepeat{doWhile}{do}{while}
+
+\Input{$\Delta$: a SAT state, $I$: implied literals}
+\Output{\True if unit resolution succeeds; \False if it finds a contradiction}
+
+\BlankLine
+
+\doWhile{a new literal is added in $I$}{
+    \For{all clauses in $\Delta$}{
+        \If{the clause is \emph{not} subsumed}{
+            \If{there is only one literal $l$ in the clause is not set}{
+                $I\leftarrow I \cup \{l\}$ \tcc*[r]{$l$ is implied}
+            }\ElseIf{the clause is empty \tcc*[r]{find a contradiction}}{
+                generate the assertion clause \tcc*[r]{detail see Algorithm \ref{learned}}
+                \KwRet \False
+            }
+        }
+    }
+}
+\KwRet \True
+\end{algorithm}
+
+
+
+
+
+
+
+\subsection{Clause Learning}
+Algorithm \ref{learned} is used for generating the first UIP learned clause when unit resolution finds a contraction.
+The algorithm is originally discussed in \cite{notes}.
+The input is the SAT state $\Delta$ and the empty clause that are found by unit resolution.
+At beginning, we set variable \emph{learned clause} to be the empty clause.
+Next, we check whether the \emph{learned clause} is asserting.
+Recall that a clause is asserting if only one variable is set at the last decision level in SAT state $\Delta$.
+If \emph{learned clause} is not a asserting clause, then we find out the literal $l$ that was falsified last in the unit resolution.
+Next, we find out the \emph{reason clause} of the $\neg l$' that saved during the unit resolution.
+After that, we apply linear resolution on the \emph{learned clause} and \emph{reason clause} and then updat the \emph{learned clause} to be the resolvent.
+We repeat the process unit the \emph{learned clause} is assertion clause.
+
+
+Whenever unit resolution discovers an empty clause, it applies the Algorithm \ref{learned} to derive an asserting clause. The algorithm keeps resolving the empty clause with reasons of some unit implications until the clause becomes asserting. Moreover, Algorithm \ref{learned} is guaranteed to generate the first UIP asserting clause from the empty clause.
+
+\ \ 
+
+\begin{algorithm}[H]
+\label{learned}
+\caption{The First UIP Clause Learning}
+\SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+
+\Input{$\Delta$: the SAT state, $c$: the empty clause} 
+\Output{learned clause}
+
+\BlankLine
+
+\emph{learned clause} $\leftarrow$ $c$\;
+\While{learned clause \emph{is not asserting}}{
+    $l$ $\leftarrow$ literal in \emph{learned clause} that was falsified last\;
+    \emph{learned clause} $\leftarrow$ resolvent of \emph{learned clause} and $\neg l$'s reason
+}
+\KwRet \emph{learned clause}
+\end{algorithm}
+
+
+\section{Evaluation}
+
+
+\bibliography{report}
+
+\newpage
+
+
+
+\end{document}
