@@ -316,6 +316,7 @@ SatState* sat_state_new(const char* file_name) {
 						var->value = -1;
 						var->decision_level = 0;
 						var->reason = NULL;
+						var->mark = 0;
 						sat_state->vars[i] = var;
 					}
 
@@ -355,6 +356,7 @@ SatState* sat_state_new(const char* file_name) {
 			c->lits = (Lit **) malloc(sizeof(Lit *) * capacity);
 			c->subsume = 0;
 			c->assertion_level = 0;
+			c->mark = 0;
 
 			char * token = strtok(line, " ");
 			int lit_count = 0; // count literals in this clause
