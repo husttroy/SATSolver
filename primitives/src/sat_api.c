@@ -7,10 +7,6 @@
 
 #include "sat_api.h"
 
-void print_CNF (SatState* sat);
-
-void print_State (SatState* sat);
-
 /******************************************************************************
  * We explain here the functions you need to implement
  *
@@ -21,7 +17,6 @@ void print_State (SatState* sat);
  * --That is, you do not need to put everything in a single file
  * --You should carefully read the descriptions and must follow each requirement
  ******************************************************************************/
-
 
 /******************************************************************************
  * Variables
@@ -490,8 +485,8 @@ int get_assertion_level(Clause * clause) {
 	for (int i = 0; i < clause->size; i++) {
 		Lit * lit = clause->lits[i];
 		if (lit->var->decision_level > max) {
-			max = lit->var->decision_level;
 			second = max;
+			max = lit->var->decision_level;
 		} else if (lit->var->decision_level > second) {
 			second = lit->var->decision_level;
 		}
@@ -503,10 +498,6 @@ int get_assertion_level(Clause * clause) {
 //applies unit resolution to the cnf of sat state
 //returns 1 if unit resolution succeeds, 0 if it finds a contradiction
 BOOLEAN sat_unit_resolution(SatState* sat_state) {
-
-	printf("\nStart Unit Resolution: \n");
-	print_State(sat_state);
-
 	int old = sat_state->implies_num;
 
 	do {
@@ -626,9 +617,6 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 					learn->assertion_level = get_assertion_level(learn);
 					learn->subsume = 0;
 					sat_state->asserting = learn;
-
-					printf("\nDone Unit Resolution: \n");
-					print_State(sat_state);
 					return 0;
 				} else {
 					// cannot resolve it, do nothing
@@ -637,9 +625,6 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 		}
 	} while (old < sat_state->implies_num);
 
-
-					printf("\nDone Unit Resolution: \n");
-					print_State(sat_state);
 	return 1;
 }
 
@@ -682,10 +667,10 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 	}
 
 	// free the learned clause
-	if (sat_state->asserting != NULL) {
-		free(sat_state->asserting->lits);
-		free(sat_state->asserting);
-	}
+//	if (sat_state->asserting != NULL) {
+//		free(sat_state->asserting->lits);
+//		free(sat_state->asserting);
+//	}
 	sat_state->asserting = NULL;
 	return;
 }
@@ -742,87 +727,3 @@ void sat_unmark_clause(Clause* clause) {
  ******************************************************************************/
 
 
-
-
-
-
-
-
-void print_CNF (SatState* sat){
-
-	printf("Input CNF: \n");
-	printf("%d Variables: ", sat->var_num);
-	for(int i = 0;i < sat->var_num; i++){
-		printf("%lu ", sat->vars[i]->index);
-	}
-
-	printf("\n%d Literals: ", sat->lit_num);
-	for(int k = 0;k < sat->lit_num; k++){
-		printf("%ld ", sat->lits[k]->index);
-	}
-
-	printf("\n%d Clauses: \n", sat->clause_num);
-	for(int i = 0; i < sat->clause_num; i++){
-		printf("[%d] ",i+1);
-		for(int j = 0; j < sat->cnf[i]->size; j++ ){
-			int index = (int) sat->cnf[i]->lits[j]->index;
-			printf("%d ", index);
-		}
-		printf("\n");
-	}
-
-	print_State(sat);
-
-}
-
-
-void print_State(SatState* sat){
-
-	printf("==========================================\n");
-
-	printf("%d Learned Clauses: \n", sat->learn_num);
-	for(int i = 0; i < sat->learn_num; i++){
-		printf("[%d] ",i);
-		for(int j = 0; j < sat->learns[i]->size; j++ ){
-			int index = (int) sat->learns[i]->lits[j]->index;
-			printf("%d ", index);
-		}
-		printf("\n");
-	}
-
-	printf("%d Literals are Dicided: ", sat->decision_level-1);
-	for(int i = 0; i < (sat->decision_level-1); i++){
-		int index = (int) sat->decisions[i]->index;
-		if (i == (sat->decision_level-2)){
-			printf("%d", index);
-		} else {
-			printf("%d, ", index);
-		}
-	}
-	printf("\n");
-
-	printf("%d Implied Literals: ", sat->implies_num);
-	for(int i = 0; i < (sat->implies_num); i++){
-		int index = (int) sat->implies[i]->index;
-		if (i == (sat->implies_num-1)){
-			printf("%d", index);
-		} else {
-			printf("%d, ", index);
-		}
-	}
-	printf("\n");
-
-
-	printf("Asserting Clause: {");
-	if (sat->asserting!= NULL){
-		for(int j = 0; j < sat->asserting->size; j++ ){
-			int index = (int) sat->asserting->lits[j]->index;
-			if (j == (sat->asserting->size-1)){
-				printf("%d", index);
-			} else {
-				printf("%d, ", index);
-			}
-		}
-	}
-	printf("}\n");
-}
