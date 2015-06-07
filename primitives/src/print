@@ -1,0 +1,85 @@
+
+void print_CNF (SatState* sat){
+
+	printf("Input CNF: \n");
+	printf("%d Variables: ", sat->var_num);
+	for(int i = 0;i < sat->var_num; i++){
+		printf("%lu ", sat->vars[i]->index);
+	}
+
+	printf("\n%d Literals: ", sat->lit_num);
+	for(int k = 0;k < sat->lit_num; k++){
+		printf("%ld ", sat->lits[k]->index);
+	}
+
+	printf("\n%d Clauses: \n", sat->clause_num);
+	for(int i = 0; i < sat->clause_num; i++){
+		printf("[%d] ",i+1);
+		for(int j = 0; j < sat->cnf[i]->size; j++ ){
+			int index = (int) sat->cnf[i]->lits[j]->index;
+			printf("%d ", index);
+		}
+		printf("\n");
+	}
+
+	print_State(sat);
+
+}
+
+
+void print_State(SatState* sat){
+
+	printf("==========================================\n");
+
+	printf("%d Learned Clauses: \n", sat->learn_num);
+	for(int i = 0; i < sat->learn_num; i++){
+		printf("[%d] ",i);
+		for(int j = 0; j < sat->learns[i]->size; j++ ){
+			int index = (int) sat->learns[i]->lits[j]->index;
+			printf("%d ", index);
+		}
+		printf("\n");
+	}
+
+	printf("Dicision Level: %d\n", sat->decision_level);
+	for(int i = 0; i < (sat->decision_level-1); i++){
+		int index = (int) sat->decisions[i]->index;
+		if (i == (sat->decision_level-2)){
+			printf("%d", index);
+		} else {
+			printf("%d, ", index);
+		}
+	}
+	printf("\n");
+
+	printf("%d Implied Literals: ", sat->implies_num);
+	for(int i = 0; i < (sat->implies_num); i++){
+		int index = (int) sat->implies[i]->index;
+		if (i == (sat->implies_num-1)){
+			printf("%d", index);
+		} else {
+			printf("%d, ", index);
+		}
+	}
+	printf("\n");
+
+//	printf ("\n current decision level: %d \n", sat->decision_level);
+
+	printf("Asserting Clause: {");
+	if (sat->asserting!= NULL){
+		for(int j = 0; j < sat->asserting->size; j++ ){
+			int index = (int) sat->asserting->lits[j]->index;
+			if (j == (sat->asserting->size-1)){
+				printf("%d", index);
+				printf(" [%d]", sat->asserting->lits[j]->var->decision_level);
+			} else {
+				printf("%d", index);
+				printf(" [%d], ", sat->asserting->lits[j]->var->decision_level);
+			}
+		}
+		printf("backtrack level: %d \n", sat->asserting->assertion_level);
+
+	}
+	printf("}\n");
+
+}
