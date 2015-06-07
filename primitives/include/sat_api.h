@@ -106,7 +106,7 @@ typedef struct clause {
 	c2dSize index;
 	Lit** lits;
 	int size;
-	int asserted;
+//	int asserted;
 	int assertion_level;
 	Lit * l1;
 	Lit * l2;
