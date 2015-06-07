@@ -7,8 +7,8 @@
 
 #include "sat_api.h"
 
-void print_CNF (SatState* sat);
-void print_State(SatState* sat);
+//void print_CNF (SatState* sat);
+//void print_State(SatState* sat);
 
 /******************************************************************************
  * We explain here the functions you need to implement
@@ -49,15 +49,7 @@ BOOLEAN sat_instantiated_var(const Var* var) {
 
 //returns 1 if all the clauses mentioning the variable are subsumed, 0 otherwise
 BOOLEAN sat_irrelevant_var(const Var* var) {
-//	Clause ** clauses = var->clauses;
-//	for (int i = 0; i < var->clause_num; i++) {
-//		Clause * clause = clauses[i];
-//		if (clause->asserted == 0)
-//			return 0;
-//	}
-//
-//	return 1;
-	for (int i = 0; i < sat_var_occurences(var); i++) {
+	for (c2dSize i = 0; i < sat_var_occurences(var); i++) {
 		Clause* clause = sat_clause_of_var(i, var);
 		if (!sat_subsumed_clause(clause))
 			return 0;
@@ -140,6 +132,7 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 		sat_state->decision_capacity *= 2;
 		sat_state->decisions = (Lit **) realloc(sat_state->decisions,
 				sat_state->decision_capacity * sizeof(Lit *));
+		printf("\nRealloc decision sequence\n");
 	}
 	sat_state->decisions[sat_state->decision_level - 1] = lit;
 	sat_state->decision_level++;
@@ -150,7 +143,7 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 //		c->asserted++;
 //	}
 
-	printf("\nDecide literal at level %d", sat_state->decision_level);
+//	printf("\nDecide literal at level %d [%d]", sat_state->decision_level, lit->index);
 
 	if (!sat_unit_resolution(sat_state)) {
 		// find a contradiction
@@ -209,7 +202,7 @@ c2dSize sat_clause_size(const Clause* clause) {
 //returns 1 if the clause is subsumed, 0 otherwise
 BOOLEAN sat_subsumed_clause(const Clause* clause) {
 //	return clause->asserted > 0;
-	for (int i = 0; i < clause->size; i++) {
+	for (c2dSize i = 0; i < clause->size; i++) {
 		Lit * lit = clause->lits[i];
 		if ((lit->index > 0 && lit->var->value == 1)
 				|| ((lit->index < 0) && (lit->var->value == 0))) {
@@ -238,18 +231,21 @@ c2dSize sat_learned_clause_count(const SatState* sat_state) {
 Clause* sat_assert_clause(Clause* clause, SatState* sat_state) {
 	// check the size of the learned clause, reallocate the array when necessary
 	Clause ** learns = sat_state->learns;
-	int size = sat_state->learn_num;
-	int capacity = sat_state->learn_capacity;
+	c2dSize size = sat_state->learn_num;
+	c2dSize capacity = sat_state->learn_capacity;
 
 	if (size == capacity) {
 		capacity *= 2;
 		learns = (Clause **) realloc(learns, capacity * sizeof(Clause *));
 		sat_state->learn_capacity = capacity;
 		sat_state->learns = learns;
+		printf("\nRealloc learn clause array\n");
 	}
 
 	learns[size] = clause;
 	sat_state->learn_num++;
+	// reset the asserting clause to NULL
+	sat_state->asserting = NULL;
 
 	if (!sat_unit_resolution(sat_state)) {
 		// find a contradiction
@@ -291,6 +287,7 @@ void add_clause_to_var(Var * var, Clause * clause) {
 		var->clause_capacity *= 2;
 		var->clauses = (Clause **) realloc(var->clauses,
 				var->clause_capacity * sizeof(Clause *));
+		printf("\nRealloc clauses mentioning the same variable\n");
 	}
 
 	var->clauses[var->clause_num] = clause;
@@ -302,6 +299,7 @@ void add_clause_to_lit(Lit * lit, Clause * clause) {
 		lit->clause_capacity *= 2;
 		lit->clauses = (Clause **) realloc(lit->clauses,
 				lit->clause_capacity * sizeof(Clause *));
+		printf("\nRealloc clauses mentioning the same literal\n");
 	}
 
 	lit->clauses[lit->clause_num] = clause;
@@ -313,6 +311,7 @@ void add_lit_to_implies(Lit* lit, Clause * reason, SatState* sat) {
 		sat->implies_capacity *= 2;
 		sat->implies = (Lit **) realloc(sat->implies,
 				sat->implies_capacity * sizeof(Lit *));
+		printf("\nRealloc implies sequence\n");
 	}
 
 	lit->var->decision_level = sat->decision_level;
@@ -357,7 +356,7 @@ SatState* sat_state_new(const char* file_name) {
 					int var_num = atoi(token);
 					sat_state->var_num = var_num;
 					sat_state->vars = (Var **) malloc(sizeof(Var *) * var_num);
-					for (int i = 0; i < var_num; i++) {
+					for (c2dSize i = 0; i < var_num; i++) {
 						Var * var = (Var *) malloc(sizeof(Var));
 						var->index = i + 1;
 						var->pos = NULL;
@@ -371,49 +370,54 @@ SatState* sat_state_new(const char* file_name) {
 						var->reason = NULL;
 						var->mark = 0;
 						sat_state->vars[i] = var;
-					}
 
+					}
+				} else if (count == 3) {
+					// read clause number
+					c2dSize clause_num = atoi(token);
+					sat_state->clause_num = clause_num;
+					sat_state->cnf = (Clause **) malloc(
+							sizeof(Clause *) * clause_num);
+
+					// initialize lit array
 					sat_state->lits = (Lit **) malloc(
-							sizeof(Lit *) * var_num * 2);
-					sat_state->lit_num = var_num * 2;
-					for (int i = 0; i < var_num; i++) {
+							sizeof(Lit *) * sat_state->var_num * 2);
+					sat_state->lit_num = sat_state->var_num * 2;
+
+					// initialize each literal
+					for (c2dSize i = 0; i < sat_state->var_num; i++) {
 						Lit * pos = (Lit *) malloc(sizeof(Lit));
 						pos->index = i + 1;
 						pos->var = sat_state->vars[i];
 						pos->redundant = 0;
 						pos->clauses = (Clause **) malloc(
-								sizeof(Clause *) * 200);
+								sizeof(Clause *) * sat_state->clause_num);
 						pos->clause_num = 0;
-						pos->clause_capacity = 200;
+						pos->clause_capacity = sat_state->clause_num;
 						Lit * neg = (Lit *) malloc(sizeof(Lit));
 						neg->index = -(i + 1);
 						neg->var = sat_state->vars[i];
 						neg->redundant = 0;
 						neg->clauses = (Clause **) malloc(
-								sizeof(Clause *) * 200);
+								sizeof(Clause *) * sat_state->clause_num);
 						neg->clause_num = 0;
-						neg->clause_capacity = 200;
+						neg->clause_capacity = sat_state->clause_num;
 
 						sat_state->lits[2 * i] = pos;
 						sat_state->lits[2 * i + 1] = neg;
 						sat_state->vars[i]->pos = pos;
 						sat_state->vars[i]->neg = neg;
 					}
-				} else if (count == 3) {
-					// read clause number
-					int clause_num = atoi(token);
-					sat_state->clause_num = clause_num;
-					sat_state->cnf = (Clause **) malloc(
-							sizeof(Clause *) * clause_num);
 				}
 
 				token = strtok(NULL, " ");
 				count++;
 			}
 
-			sat_state->learns = (Clause **) malloc(sizeof(Clause *) * 200);
+			sat_state->learns = (Clause **) malloc(
+					sizeof(Clause *) * sat_state->clause_num);
 			sat_state->learn_num = 0;
-			sat_state->learn_capacity = 200;
+			sat_state->learn_capacity = sat_state->clause_num;
 			sat_state->decisions = (Lit **) malloc(
 					sizeof(Lit *) * sat_state->var_num);
 			sat_state->decision_level = 1;
@@ -428,7 +432,7 @@ SatState* sat_state_new(const char* file_name) {
 			Clause * c = (Clause *) malloc(sizeof(Clause));
 
 			c->index = clause_count + 1;
-			int capacity = 5;
+			c2dSize capacity = 5;
 			c->lits = (Lit **) malloc(sizeof(Lit *) * capacity);
 //			c->asserted = 0;
 			c->assertion_level = 0;
@@ -437,14 +441,15 @@ SatState* sat_state_new(const char* file_name) {
 			char * token = strtok(line, " \t");
 			int lit_count = 0; // count literals in this clause
 			while (token) {
-				int lit_index = atoi(token);
+				c2dLiteral lit_index = atoi(token);
 				if (lit_index == 0)
 					break;
-				int var_index = lit_index > 0 ? lit_index : -lit_index;
+				c2dSize var_index = lit_index > 0 ? lit_index : -lit_index;
 				if (lit_count >= capacity) {
 					capacity *= 2;
 					c->lits = (Lit **) realloc(c->lits,
 							capacity * sizeof(Lit *));
+					printf("\nRealloc clause literals\n");
 				}
 
 				// add to clause
@@ -490,18 +495,18 @@ SatState* sat_state_new(const char* file_name) {
 	if (line)
 		free(line);
 
-	print_CNF(sat_state);
+//	print_CNF(sat_state);
 	return sat_state;
 }
 
 //frees the SatState
 void sat_state_free(SatState* sat_state) {
-	for (int i = 0; i < sat_state->var_num; i++) {
+	for (c2dSize i = 0; i < sat_state->var_num; i++) {
 		free(sat_state->vars[i]->clauses);
 		free(sat_state->vars[i]);
 	}
 
-	for (int i = 0; i < sat_state->lit_num; i++) {
+	for (c2dSize i = 0; i < sat_state->lit_num; i++) {
 		free(sat_state->lits[i]->clauses);
 		free(sat_state->lits[i]);
 	}
@@ -550,7 +555,7 @@ void sat_state_free(SatState* sat_state) {
 // a clause is asserting only if at most one literal is at the asserting level
 BOOLEAN is_asserting(Clause * clause, SatState * sat_state) {
 	int count = 0;
-	for (int i = 0; i < clause->size; i++) {
+	for (c2dSize i = 0; i < clause->size; i++) {
 		Lit* lit = clause->lits[i];
 		if (lit->var->decision_level == sat_state->decision_level) {
 			count++;
@@ -561,7 +566,7 @@ BOOLEAN is_asserting(Clause * clause, SatState * sat_state) {
 }
 
 Lit * get_implication(Clause * clause, SatState * sat_state) {
-	for (int i = sat_state->implies_num - 1; i > -1; i--) {
+	for (c2dLiteral i = sat_state->implies_num - 1; i > -1; i--) {
 		Lit * lit = sat_state->implies[i];
 		for (int j = 0; j < clause->size; j++) {
 			Lit * lit2 = clause->lits[j];
@@ -578,12 +583,13 @@ Lit * get_implication(Clause * clause, SatState * sat_state) {
 int get_assertion_level(Clause * clause) {
 	int max = 1;
 	int second = 1;
-	for (int i = 0; i < clause->size; i++) {
+	for (c2dSize i = 0; i < clause->size; i++) {
 		Lit * lit = clause->lits[i];
-		if (lit->var->decision_level == max || lit->var->decision_level == second){
+		if (lit->var->decision_level == max
+				|| lit->var->decision_level == second) {
 			// duplicated, skip
 			continue;
-		}else if(lit->var->decision_level > max) {
+		} else if (lit->var->decision_level > max) {
 			second = max;
 			max = lit->var->decision_level;
 		} else if (lit->var->decision_level > second) {
@@ -603,7 +609,7 @@ BOOLEAN is_resolved(Lit * lit) {
 }
 
 Lit * get_non_resolved_lit(Clause * clause) {
-	for (int i = 0; i < clause->size; i++) {
+	for (c2dSize i = 0; i < clause->size; i++) {
 		Lit * lit = clause->lits[i];
 		if (lit != clause->l2 && lit != clause->l1) {
 			if (!is_resolved(lit)) {
@@ -628,7 +634,7 @@ void learn_clause(Clause* clause, SatState* sat_state) {
 		resolvent->lits = (Lit**) malloc(
 				sizeof(Lit*) * (learn->size + reason->size));
 		int index = 0;
-		for (int i = 0; i < learn->size + reason->size; i++) {
+		for (c2dSize i = 0; i < learn->size + reason->size; i++) {
 			Lit* lit2;
 			if (i < learn->size) {
 				lit2 = learn->lits[i];
@@ -644,7 +650,7 @@ void learn_clause(Clause* clause, SatState* sat_state) {
 				index++;
 			}
 		}
-		for (int i = 0; i < index; i++) {
+		for (c2dSize i = 0; i < index; i++) {
 			resolvent->lits[i]->redundant = 0;
 		}
 		resolvent->size = index;
@@ -657,13 +663,17 @@ void learn_clause(Clause* clause, SatState* sat_state) {
 	}
 
 	// set l1 and l2
-	if(learn->size == 1){
+	if (learn->size == 1) {
 		// unit clause, no need to watch
 		learn->l1 = NULL;
 		learn->l2 = NULL;
-	}else{
+		// if learns a unit resolution, directly go back to 1
+		learn->assertion_level = 1;
+	} else {
 		learn->l1 = learn->lits[0];
 		learn->l2 = learn->lits[1];
+		// choose the second highest as assertion level
+		learn->assertion_level = get_assertion_level(learn);
 	}
 
 	// update lit->clauses
@@ -672,8 +682,6 @@ void learn_clause(Clause* clause, SatState* sat_state) {
 		add_clause_to_lit(lit, learn);
 	}
 
-	// set assertion level
-	learn->assertion_level = get_assertion_level(learn);
 //	learn->asserted = 0;
 	sat_state->asserting = learn;
 }
@@ -681,33 +689,34 @@ void learn_clause(Clause* clause, SatState* sat_state) {
 //applies unit resolution to the cnf of sat state
 //returns 1 if unit resolution succeeds, 0 if it finds a contradiction
 BOOLEAN sat_unit_resolution(SatState* sat_state) {
-	printf("\nStart\n");
-	print_State(sat_state);
-	if(sat_state->decision_level == 1){
+//	printf("\nStart\n");
+//	print_State(sat_state);
+	if (sat_state->decision_level == 1) {
 		// scan all clauses including original clauses and learned ones
-		for(int i = 0; i < sat_state->clause_num + sat_state->learn_num; i ++){
+		for (c2dSize i = 0; i < sat_state->clause_num + sat_state->learn_num; i++) {
 			Clause* clause;
-			if(i < sat_state->clause_num){
+			if (i < sat_state->clause_num) {
 				clause = sat_state->cnf[i];
-			}else{
+			} else {
 				clause = sat_state->learns[i - sat_state->clause_num];
 			}
 
-			if(clause->size == 1){
+			if (clause->size == 1) {
 				// unit clause
-				if(is_resolved(clause->lits[0])){
+				if (is_resolved(clause->lits[0])) {
 					// this literal has been set to false, contradiction on this unit clause, and there is no level to backtrack, return 0 immediately
 					return 0;
-				}else{
+				} else {
 					add_lit_to_implies(clause->lits[0], clause, sat_state);
 				}
 			}
 		}
 	}
+
 	int old = sat_state->implies_num;
-	do{
+	do {
 		old = sat_state->implies_num;
-		for (int i = 0;
+		for (c2dSize i = 0;
 				i < sat_state->decision_level - 1 + sat_state->implies_num;
 				i++) {
 			Lit * pending;
@@ -719,7 +728,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 
 			Lit * resolved = sat_index2literal(-pending->index, sat_state);
 
-			for (int j = 0; j < resolved->clause_num; j++) {
+			for (c2dSize j = 0; j < resolved->clause_num; j++) {
 				Clause * clause = resolved->clauses[j];
 				if (resolved == clause->l1) {
 					// if l1 is resolved, find a new literal to watch
@@ -732,12 +741,11 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 						} else if (is_resolved(clause->l2)) {
 							// l2 is resolved, contradiction, learn a clause
 							learn_clause(clause, sat_state);
-							printf("\nContradiction\n");
-							print_State(sat_state);
+//							printf("\nContradiction\n");
+//							print_State(sat_state);
 							return 0;
 						} else {
-							// l2 is asserted
-							//						clause->asserted = 1;
+							sat_state->asserting = NULL;
 						}
 					} else {
 						clause->l1 = new_watch;
@@ -755,8 +763,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 							learn_clause(clause, sat_state);
 							return 0;
 						} else {
-							// l1 is asserted
-							//						clause->asserted = 1;
+							sat_state->asserting = NULL;
 						}
 					} else {
 						clause->l2 = new_watch;
@@ -764,16 +771,16 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 				}
 			}
 		}
-	}while (old < sat_state->implies_num);
+	} while (old < sat_state->implies_num);
 
-	printf("\nNo Contradiction\n");
-	print_State(sat_state);
+//	printf("\nNo Contradiction\n");
+//	print_State(sat_state);
 	return 1;
 }
 
 void sat_undo_unit_resolution(SatState* sat_state) {
 	int dlevel = sat_state->decision_level;
-	for (int i = sat_state->implies_num - 1; i > -1 ; i--) {
+	for (c2dLiteral i = sat_state->implies_num - 1; i > -1; i--) {
 		if (sat_state->implies[i]->var->decision_level == dlevel) {
 //			for(int j = 0; j < imply->clause_num; j++){
 //				imply->clauses[j]->asserted --;
@@ -838,90 +845,90 @@ void sat_unmark_clause(Clause* clause) {
 /******************************************************************************
  * end
  ******************************************************************************/
-
-
-void print_CNF (SatState* sat){
-
-	printf("Input CNF: \n");
-	printf("%d Variables: ", sat->var_num);
-	for(int i = 0;i < sat->var_num; i++){
-		printf("%lu ", sat->vars[i]->index);
-	}
-
-	printf("\n%d Literals: ", sat->lit_num);
-	for(int k = 0;k < sat->lit_num; k++){
-		printf("%ld ", sat->lits[k]->index);
-	}
-
-	printf("\n%d Clauses: \n", sat->clause_num);
-	for(int i = 0; i < sat->clause_num; i++){
-		printf("[%d] ",i+1);
-		for(int j = 0; j < sat->cnf[i]->size; j++ ){
-			int index = (int) sat->cnf[i]->lits[j]->index;
-			printf("%d ", index);
-		}
-		printf("\n");
-	}
-
-	print_State(sat);
-
-}
-
-
-void print_State(SatState* sat){
-
-	printf("==========================================\n");
-
-	printf("%d Learned Clauses: \n", sat->learn_num);
-	for(int i = 0; i < sat->learn_num; i++){
-		printf("[%d] ",i);
-		for(int j = 0; j < sat->learns[i]->size; j++ ){
-			int index = (int) sat->learns[i]->lits[j]->index;
-			printf("%d ", index);
-		}
-		printf("\n");
-	}
-
-	printf("Decision Level: %d\n", sat->decision_level);
-	for(int i = 0; i < (sat->decision_level-1); i++){
-		int index = (int) sat->decisions[i]->index;
-		if (i == (sat->decision_level-2)){
-			printf("%d", index);
-		} else {
-			printf("%d, ", index);
-		}
-	}
-	printf("\n");
-
-	printf("%d Implied Literals: ", sat->implies_num);
-	for(int i = 0; i < (sat->implies_num); i++){
-		int index = (int) sat->implies[i]->index;
-		if (i == (sat->implies_num-1)){
-			printf("%d", index);
-		} else {
-			printf("%d, ", index);
-		}
-	}
-	printf("\n");
-
-//	printf ("\n current decision level: %d \n", sat->decision_level);
-
-	printf("Asserting Clause: {");
-	if (sat->asserting!= NULL){
-		for(int j = 0; j < sat->asserting->size; j++ ){
-			int index = (int) sat->asserting->lits[j]->index;
-			if (j == (sat->asserting->size-1)){
-				printf("%d", index);
-				printf(" [%d]", sat->asserting->lits[j]->var->decision_level);
-			} else {
-				printf("%d", index);
-				printf(" [%d], ", sat->asserting->lits[j]->var->decision_level);
-			}
-		}
-		printf("backtrack level: %d \n", sat->asserting->assertion_level);
-
-	}
-	printf("}\n");
-
-}
+//
+//
+//void print_CNF (SatState* sat){
+//
+//	printf("Input CNF: \n");
+//	printf("%d Variables: ", sat->var_num);
+//	for(int i = 0;i < sat->var_num; i++){
+//		printf("%lu ", sat->vars[i]->index);
+//	}
+//
+//	printf("\n%d Literals: ", sat->lit_num);
+//	for(int k = 0;k < sat->lit_num; k++){
+//		printf("%ld ", sat->lits[k]->index);
+//	}
+//
+//	printf("\n%d Clauses: \n", sat->clause_num);
+//	for(int i = 0; i < sat->clause_num; i++){
+//		printf("[%d] ",i+1);
+//		for(int j = 0; j < sat->cnf[i]->size; j++ ){
+//			int index = (int) sat->cnf[i]->lits[j]->index;
+//			printf("%d ", index);
+//		}
+//		printf("\n");
+//	}
+//
+//	print_State(sat);
+//
+//}
+//
+//
+//void print_State(SatState* sat){
+//
+//	printf("==========================================\n");
+//
+//	printf("%d Learned Clauses: \n", sat->learn_num);
+//	for(int i = 0; i < sat->learn_num; i++){
+//		printf("[%d] ",i);
+//		for(int j = 0; j < sat->learns[i]->size; j++ ){
+//			int index = (int) sat->learns[i]->lits[j]->index;
+//			printf("%d ", index);
+//		}
+//		printf("\n");
+//	}
+//
+//	printf("Decision Level: %d\n", sat->decision_level);
+//	for(int i = 0; i < (sat->decision_level-1); i++){
+//		int index = (int) sat->decisions[i]->index;
+//		if (i == (sat->decision_level-2)){
+//			printf("%d", index);
+//		} else {
+//			printf("%d, ", index);
+//		}
+//	}
+//	printf("\n");
+//
+//	printf("%d Implied Literals: ", sat->implies_num);
+//	for(int i = 0; i < (sat->implies_num); i++){
+//		int index = (int) sat->implies[i]->index;
+//		if (i == (sat->implies_num-1)){
+//			printf("%d", index);
+//		} else {
+//			printf("%d, ", index);
+//		}
+//	}
+//	printf("\n");
+//
+////	printf ("\n current decision level: %d \n", sat->decision_level);
+//
+//	printf("Asserting Clause: {");
+//	if (sat->asserting!= NULL){
+//		for(int j = 0; j < sat->asserting->size; j++ ){
+//			int index = (int) sat->asserting->lits[j]->index;
+//			if (j == (sat->asserting->size-1)){
+//				printf("%d", index);
+//				printf(" [%d]", sat->asserting->lits[j]->var->decision_level);
+//			} else {
+//				printf("%d", index);
+//				printf(" [%d], ", sat->asserting->lits[j]->var->decision_level);
+//			}
+//		}
+//		printf("backtrack level: %d \n", sat->asserting->assertion_level);
+//
+//	}
+//	printf("}\n");
+//
+//}
 

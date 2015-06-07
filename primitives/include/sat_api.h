@@ -67,10 +67,10 @@ typedef struct var {
 	struct literal * pos;
 	struct literal * neg;
 	struct clause ** clauses; // clauses mentioning this variable
-	int clause_num;
-	int clause_capacity;
+	c2dSize clause_num;
+	c2dSize clause_capacity;
 	int value;  // 1 --> true, 0 --> false, -1 --> unset
-	int decision_level;
+	c2dSize decision_level;
 	struct clause * reason;
 	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Var;
@@ -87,8 +87,8 @@ typedef struct literal {
 	c2dLiteral index;
 	Var * var;
 	struct clause ** clauses; // clauses mentioning this literal
-	int clause_num;
-	int clause_capacity;
+	c2dSize clause_num;
+	c2dSize clause_capacity;
 	BOOLEAN redundant; // used to check if this literal has been added when merging and learning clause
 } Lit;
 
@@ -105,9 +105,9 @@ typedef struct literal {
 typedef struct clause {
 	c2dSize index;
 	Lit** lits;
-	int size;
+	c2dSize size;
 //	int asserted;
-	int assertion_level;
+	c2dSize assertion_level;
 	Lit * l1;
 	Lit * l2;
 	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
@@ -121,20 +121,20 @@ typedef struct clause {
 
 typedef struct sat_state_t {
 	Var ** vars;
-	int var_num;
+	c2dSize var_num;
 	Lit ** lits;
-	int lit_num;
+	c2dSize lit_num;
 	Clause ** cnf;
-	int clause_num;
+	c2dSize clause_num;
 	Clause ** learns;
-	int learn_num;
-	int learn_capacity;
+	c2dSize learn_num;
+	c2dSize learn_capacity;
 	Lit ** decisions;
-	int decision_level; // current decision level, it is also the size of the decision sequence
-	int decision_capacity;
+	c2dSize decision_level; // current decision level, it is also the size of the decision sequence
+	c2dSize decision_capacity;
 	Lit ** implies;
-	int implies_num;
-	int implies_capacity;
+	c2dSize implies_num;
+	c2dSize implies_capacity;
 	Clause * asserting;
 } SatState;
 
