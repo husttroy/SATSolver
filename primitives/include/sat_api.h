@@ -66,7 +66,7 @@ typedef struct var {
 	c2dSize index;
 	struct literal * pos;
 	struct literal * neg;
-	struct clause ** clauses;
+	struct clause ** clauses; // clauses mentioning this variable
 	int clause_num;
 	int clause_capacity;
 	int value;  // 1 --> true, 0 --> false, -1 --> unset
@@ -86,6 +86,9 @@ typedef struct var {
 typedef struct literal {
 	c2dLiteral index;
 	Var * var;
+	struct clause ** clauses; // clauses mentioning this literal
+	int clause_num;
+	int clause_capacity;
 	BOOLEAN redundant; // used to check if this literal has been added when merging and learning clause
 } Lit;
 
@@ -105,6 +108,9 @@ typedef struct clause {
 	int size;
 	BOOLEAN subsume;
 	int assertion_level;
+	Lit * l1;
+	Lit * l2;
+	int start; // where we should start searching for the non-resolved literal
 	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Clause;
 
@@ -130,6 +136,9 @@ typedef struct sat_state_t {
 	Lit ** implies;
 	int implies_num;
 	int implies_capacity;
+	Lit ** pending;
+	int pending_num;
+	int pending_capacity;
 	Clause * asserting;
 } SatState;
 
@@ -249,7 +258,7 @@ void sat_state_free(SatState* sat_state);
 
 //applies unit resolution to the cnf of sat state
 //returns 1 if unit resolution succeeds, 0 if it finds a contradiction
-BOOLEAN sat_unit_resolution(SatState* sat_state);
+BOOLEAN sat_unit_resolution_old(SatState* sat_state);
 
 //undoes sat_unit_resolution(), leading to un-instantiating variables that have been instantiated
 //after sat_unit_resolution()
