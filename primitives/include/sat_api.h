@@ -135,9 +135,6 @@ typedef struct sat_state_t {
 	Lit ** implies;
 	int implies_num;
 	int implies_capacity;
-	Lit ** pending;
-	int pending_num;
-	int pending_capacity;
 	Clause * asserting;
 } SatState;
 
