@@ -106,7 +106,7 @@ typedef struct clause {
 	c2dSize index;
 	Lit** lits;
 	int size;
-	BOOLEAN subsume;
+	int asserted;
 	int assertion_level;
 	Lit * l1;
 	Lit * l2;
@@ -257,7 +257,7 @@ void sat_state_free(SatState* sat_state);
 
 //applies unit resolution to the cnf of sat state
 //returns 1 if unit resolution succeeds, 0 if it finds a contradiction
-BOOLEAN sat_unit_resolution_old(SatState* sat_state);
+BOOLEAN sat_unit_resolution(SatState* sat_state);
 
 //undoes sat_unit_resolution(), leading to un-instantiating variables that have been instantiated
 //after sat_unit_resolution()

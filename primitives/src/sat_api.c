@@ -49,7 +49,7 @@ BOOLEAN sat_irrelevant_var(const Var* var) {
 	Clause ** clauses = var->clauses;
 	for (int i = 0; i < var->clause_num; i++) {
 		Clause * clause = clauses[i];
-		if (!clause->subsume)
+		if (clause->asserted == 0)
 			return 0;
 	}
 
@@ -113,6 +113,18 @@ BOOLEAN sat_implied_literal(const Lit* lit) {
 	return sat_instantiated_var(lit->var);
 }
 
+void add_lit_to_pending(Lit* lit, SatState* sat) {
+	if (sat->pending_num + 1 > sat->pending_capacity) {
+		sat->pending_capacity *= 2;
+		sat->pending = (Lit **) realloc(sat->pending,
+				sat->pending_capacity * sizeof(Lit *));
+	}
+
+	sat->pending[sat->pending_num] = lit;
+	sat->pending_num++;
+	return;
+}
+
 //sets the literal to true, and then runs unit resolution
 //returns a learned clause if unit resolution detected a contradiction, NULL otherwise
 //
@@ -135,6 +147,15 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 	sat_state->decisions[sat_state->decision_level - 1] = lit;
 	sat_state->decision_level++;
 
+	for (int i = 0; i < lit->clause_num; i++) {
+		// increment the asserted literal counter
+		Clause * c = lit->clauses[i];
+		c->asserted++;
+	}
+
+	// add the decide literal to pending
+	add_lit_to_pending(lit, sat_state);
+
 	if (!sat_unit_resolution(sat_state)) {
 		// find a contradiction
 		return sat_state->asserting;
@@ -152,6 +173,12 @@ void sat_undo_decide_literal(SatState* sat_state) {
 	sat_state->decisions[sat_state->decision_level - 2] = NULL;
 	lit->var->value = -1;
 	lit->var->decision_level = 0;
+
+	for (int i = 0; i < lit->clause_num; i++) {
+		// decrement the asserted literal counter
+		Clause * c = lit->clauses[i];
+		c->asserted--;
+	}
 
 	sat_undo_unit_resolution(sat_state);
 	sat_state->decision_level--;
@@ -185,7 +212,7 @@ c2dSize sat_clause_size(const Clause* clause) {
 
 //returns 1 if the clause is subsumed, 0 otherwise
 BOOLEAN sat_subsumed_clause(const Clause* clause) {
-	return clause->subsume;
+	return clause->asserted > 0;
 }
 
 //returns the number of clauses in the cnf of sat state
@@ -254,7 +281,7 @@ int startsWith(const char *pre, const char *str) {
 	return lenstr < lenpre ? 0 : strncmp(pre, str, lenpre) == 0;
 }
 
-void add_clause(Var * var, Clause * clause) {
+void add_clause_to_var(Var * var, Clause * clause) {
 	if (var->clause_num + 1 > var->clause_capacity) {
 		var->clause_capacity *= 2;
 		var->clauses = (Clause **) realloc(var->clauses,
@@ -263,6 +290,54 @@ void add_clause(Var * var, Clause * clause) {
 
 	var->clauses[var->clause_num] = clause;
 	var->clause_num++;
+}
+
+void add_clause_to_lit(Lit * lit, Clause * clause) {
+	if (lit->clause_num + 1 > lit->clause_capacity) {
+		lit->clause_capacity *= 2;
+		lit->clauses = (Clause **) realloc(lit->clauses,
+				lit->clause_capacity * sizeof(Clause *));
+	}
+
+	lit->clauses[lit->clause_num] = clause;
+	lit->clause_num++;
+}
+
+void add_lit_to_implies(Lit* lit, Clause * reason, SatState* sat) {
+	if (sat->implies_num + 1 > sat->implies_capacity) {
+		sat->implies_capacity *= 2;
+		sat->implies = (Lit **) realloc(sat->implies,
+				sat->implies_capacity * sizeof(Lit *));
+	}
+
+	lit->var->decision_level = sat->decision_level;
+	lit->var->value = lit->index > 0 ? 1 : 0;
+	lit->var->reason = reason;
+	sat->implies[sat->implies_num] = lit;
+	sat->implies_num++;
+
+	for (int i = 0; i < lit->clause_num; i++) {
+		// increment the asserted literal counter
+		Clause * c = lit->clauses[i];
+		c->asserted++;
+	}
+
+	add_lit_to_pending(lit, sat);
+}
+
+Lit * pop_lit_from_pending(SatState * sat) {
+	if (sat->pending_num == 0) {
+		return NULL;
+	} else {
+		Lit * lit = sat->pending[0];
+		// shift to left
+		for (int i = 1; i < sat->pending_num; i++) {
+			sat->pending[i - 1] = sat->pending[i];
+		}
+		sat->pending[sat->pending_num - 1] = NULL;
+		sat->pending_num--;
+		return lit;
+	}
 }
 
 //constructs a SatState from an input cnf file
@@ -318,10 +393,18 @@ SatState* sat_state_new(const char* file_name) {
 						pos->index = i + 1;
 						pos->var = sat_state->vars[i];
 						pos->redundant = 0;
+						pos->clauses = (Clause **) malloc(
+								sizeof(Clause *) * 200);
+						pos->clause_num = 0;
+						pos->clause_capacity = 200;
 						Lit * neg = (Lit *) malloc(sizeof(Lit));
 						neg->index = -(i + 1);
 						neg->var = sat_state->vars[i];
 						neg->redundant = 0;
+						neg->clauses = (Clause **) malloc(
+								sizeof(Clause *) * 200);
+						neg->clause_num = 0;
+						neg->clause_capacity = 200;
 
 						sat_state->lits[2 * i] = pos;
 						sat_state->lits[2 * i + 1] = neg;
@@ -339,6 +422,23 @@ SatState* sat_state_new(const char* file_name) {
 				token = strtok(NULL, " ");
 				count++;
 			}
+
+			sat_state->learns = (Clause **) malloc(sizeof(Clause *) * 200);
+			sat_state->learn_num = 0;
+			sat_state->learn_capacity = 200;
+			sat_state->decisions = (Lit **) malloc(
+					sizeof(Lit *) * sat_state->var_num);
+			sat_state->decision_level = 1;
+			sat_state->decision_capacity = sat_state->var_num;
+			sat_state->implies = (Lit **) malloc(
+					sizeof(Lit *) * sat_state->var_num);
+			sat_state->implies_num = 0;
+			sat_state->implies_capacity = sat_state->var_num;
+			sat_state->pending = (Lit **) malloc(
+					sizeof(Lit *) * sat_state->var_num);
+			sat_state->pending_num = 0;
+			sat_state->pending_capacity = sat_state->var_num;
+			sat_state->asserting = NULL;
 		} else {
 			// read each clause
 			Clause * c = (Clause *) malloc(sizeof(Clause));
@@ -346,7 +446,7 @@ SatState* sat_state_new(const char* file_name) {
 			c->index = clause_count + 1;
 			int capacity = 5;
 			c->lits = (Lit **) malloc(sizeof(Lit *) * capacity);
-			c->subsume = 0;
+			c->asserted = 0;
 			c->assertion_level = 0;
 			c->mark = 0;
 
@@ -367,17 +467,30 @@ SatState* sat_state_new(const char* file_name) {
 				Lit * lit = sat_index2literal(lit_index, sat_state);
 				c->lits[lit_count] = lit;
 
+				// update lit->clauses
+				add_clause_to_lit(lit, c);
+
 				// update var->clauses
-				add_clause(sat_state->vars[var_index - 1], c);
+				add_clause_to_var(sat_state->vars[var_index - 1], c);
 
 				token = strtok(NULL, " ");
 				lit_count++;
 			}
 
-			if(lit_count == 0){
+			if (lit_count == 0) {
 				free(c->lits);
 				free(c);
-			}else{
+			} else {
+				if (lit_count == 1) {
+					// unit clause, no need to watch, imply immediately
+					c->l1 = NULL;
+					c->l2 = NULL;
+					add_lit_to_implies(c->lits[0], c, sat_state);
+				} else {
+					// set l1 to the first literal, set l2 to the second
+					c->l1 = c->lits[0];
+					c->l2 = c->lits[1];
+				}
 				c->size = lit_count;
 				sat_state->cnf[clause_count] = c;
 				clause_count++;
@@ -394,17 +507,6 @@ SatState* sat_state_new(const char* file_name) {
 	if (line)
 		free(line);
 
-	sat_state->learns = (Clause **) malloc(sizeof(Clause *) * 200);
-	sat_state->learn_num = 0;
-	sat_state->learn_capacity = 200;
-	sat_state->decisions = (Lit **) malloc(sizeof(Lit *) * sat_state->var_num);
-	sat_state->decision_level = 1;
-	sat_state->decision_capacity = sat_state->var_num;
-	sat_state->implies = (Lit **) malloc(sizeof(Lit *) * sat_state->var_num);
-	sat_state->implies_num = 0;
-	sat_state->implies_capacity = sat_state->var_num;
-	sat_state->asserting = NULL;
-
 	return sat_state;
 }
 
@@ -416,6 +518,7 @@ void sat_state_free(SatState* sat_state) {
 	}
 
 	for (int i = 0; i < sat_state->lit_num; i++) {
+		free(sat_state->lits[i]->clauses);
 		free(sat_state->lits[i]);
 	}
 
@@ -489,8 +592,8 @@ Lit * get_implication(Clause * clause, SatState * sat_state) {
 }
 
 int get_assertion_level(Clause * clause) {
-	int max = 0;
-	int second = 0;
+	int max = 1;
+	int second = 1;
 	for (int i = 0; i < clause->size; i++) {
 		Lit * lit = clause->lits[i];
 		if (lit->var->decision_level > max) {
@@ -504,9 +607,160 @@ int get_assertion_level(Clause * clause) {
 	return second;
 }
 
+BOOLEAN is_resolved(Lit * lit) {
+	if (lit->index > 0) {
+		return lit->var->value == 0;
+	} else {
+		return lit->var->value == 1;
+	}
+}
+
+Lit * get_non_resolved_lit(Clause * clause) {
+	for (int i = 0; i < clause->size; i++) {
+		Lit * lit = clause->lits[i];
+		if (lit != clause->l2 && lit != clause->l1) {
+			if (!is_resolved(lit)) {
+				return lit;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+void learn_clause(Clause* clause, SatState* sat_state) {
+	// l2 is resolved, contradiction, learn a clause
+	Clause* learn = clause;
+	while (!is_asserting(learn, sat_state)) {
+		// find the implication of the last falsified literal
+		Lit* lit = get_implication(learn, sat_state);
+		Clause* reason = lit->var->reason;
+		// resolve the un-asserting clause and the reason
+		Clause* resolvent = (Clause*) malloc(sizeof(Clause));
+		resolvent->index = sat_state->clause_num + sat_state->learn_num + 1;
+		resolvent->lits = (Lit**) malloc(
+				sizeof(Lit*) * (learn->size + reason->size));
+		int index = 0;
+		for (int i = 0; i < learn->size + reason->size; i++) {
+			Lit* lit2;
+			if (i < learn->size) {
+				lit2 = learn->lits[i];
+			} else {
+				lit2 = reason->lits[i - learn->size];
+				if (lit2->redundant) {
+					continue;
+				}
+			}
+			if (lit2->index != lit->index && lit2->index + lit->index != 0) {
+				resolvent->lits[index] = lit2;
+				lit2->redundant = 1;
+				index++;
+			}
+		}
+		for (int i = 0; i < index; i++) {
+			resolvent->lits[i]->redundant = 0;
+		}
+		resolvent->size = index;
+		if (learn->index > sat_state->clause_num + sat_state->learn_num) {
+			// free the intermediate learned clause
+			free(learn->lits);
+			free(learn);
+		}
+		learn = resolvent;
+	}
+
+	// update lit->clauses
+	for(int i = 0; i < learn->size; i++){
+		Lit * lit = learn->lits[i];
+		add_clause_to_lit(lit, learn);
+	}
+
+	// set assertion level
+	learn->assertion_level = get_assertion_level(learn);
+	learn->asserted = 0;
+	sat_state->asserting = learn;
+}
+
 //applies unit resolution to the cnf of sat state
 //returns 1 if unit resolution succeeds, 0 if it finds a contradiction
 BOOLEAN sat_unit_resolution(SatState* sat_state) {
+	Lit * pending = pop_lit_from_pending(sat_state);
+
+	while (pending != NULL) {
+		Lit * resolved = sat_index2literal(-pending->index, sat_state);
+
+		for (int i = 0; i < resolved->clause_num; i++) {
+			Clause * clause = resolved->clauses[i];
+			if(sat_subsumed_clause(clause)){
+				continue;
+			}
+			if (resolved == clause->l1) {
+				// if l1 is resolved, find a new literal to watch
+				Lit * new_watch = get_non_resolved_lit(clause);
+				if (new_watch == NULL) {
+					// check l2
+					if (!sat_instantiated_var(clause->l2->var)) {
+						// l2 is free, unit clause
+						add_lit_to_implies(clause->l2, clause, sat_state);
+					} else if (is_resolved(clause->l2)) {
+						// l2 is resolved, contradiction, learn a clause
+						learn_clause(clause, sat_state);
+						return 0;
+					} else {
+						// l2 is asserted
+						clause->asserted = 1;
+					}
+				} else {
+					clause->l1 = new_watch;
+				}
+			} else if (resolved == clause->l2) {
+				// if l2 is resolved, find a new literal to watch
+				Lit * new_watch = get_non_resolved_lit(clause);
+				if (new_watch == NULL) {
+					// check l1
+					if (!sat_instantiated_var(clause->l1->var)) {
+						// l1 is free, unit clause
+						add_lit_to_implies(clause->l1, clause, sat_state);
+					} else if (is_resolved(clause->l1)) {
+						// l1 is resolved, contradiction, learn a clause
+						learn_clause(clause, sat_state);
+						return 0;
+					} else {
+						// l1 is asserted
+						clause->asserted = 1;
+					}
+				} else {
+					clause->l1 = new_watch;
+				}
+			}
+		}
+		// pop a new one
+		pending = pop_lit_from_pending(sat_state);
+	}
+
+	return 1;
+}
+
+void sat_undo_unit_resolution(SatState* sat_state) {
+	int dlevel = sat_state->decision_level;
+	for (int i = sat_state->implies_num - 1; i > -1; i--) {
+		if (sat_state->implies[i]->var->decision_level == dlevel) {
+			Lit * imply = sat_state->implies[i];
+			for(int j = 0; j < imply->clause_num; j++){
+				imply->clauses[j]->asserted --;
+			}
+			imply->var->value = -1;
+			imply->var->reason = NULL;
+			imply->var->decision_level = 0;
+			imply = NULL;
+			sat_state->implies_num--;
+		}
+	}
+}
+
+//applies unit resolution to the cnf of sat state
+//returns 1 if unit resolution succeeds, 0 if it finds a contradiction
+BOOLEAN sat_unit_resolution_old(SatState* sat_state) {
 	int old = sat_state->implies_num;
 
 	do {
@@ -519,7 +773,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 				clause = sat_state->learns[i - sat_state->clause_num];
 			}
 
-			if (!clause->subsume) {
+			if (clause->asserted == 0) {
 				BOOLEAN falsified = 1;
 				int count = 0; // count how many literals are false
 				Lit * unset_lit = NULL;
@@ -529,7 +783,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 					if ((litp->index > 0 && litp->var->value == 1)
 							|| (litp->index < 0 && litp->var->value == 0)) {
 						// this literal is true, the clause is subsumed
-						clause->subsume = 1;
+						clause->asserted ++;
 						falsified = 0;
 						break;
 					} else if ((litp->index > 0 && litp->var->value == 0)
@@ -562,7 +816,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 					unset_lit->var->value = value;
 					unset_lit->var->reason = clause;
 					unset_lit->var->decision_level = sat_state->decision_level;
-					clause->subsume = 1;
+					clause->asserted ++;
 
 					if (sat_state->implies_num + 1
 							> sat_state->implies_capacity) {
@@ -594,25 +848,27 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 								lit2 = learn->lits[i];
 							} else {
 								lit2 = reason->lits[i - learn->size];
-								if(lit2->redundant){
+								if (lit2->redundant) {
 									continue;
 								}
 							}
 
 							if (lit2->index != lit->index
 									&& lit2->index + lit->index != 0) {
-									resolvent->lits[index] = lit2;
-									lit2->redundant = 1;
-									index++;
+								resolvent->lits[index] = lit2;
+								lit2->redundant = 1;
+								index++;
 							}
 						}
 
-						for(int i = 0; i < index; i++){
+						for (int i = 0; i < index; i++) {
 							resolvent->lits[i]->redundant = 0;
 						}
 
 						resolvent->size = index;
-						if(learn->index > sat_state->clause_num + sat_state->learn_num){
+						if (learn->index
+								> sat_state->clause_num
+										+ sat_state->learn_num) {
 							// free the intermediate learned clause
 							free(learn->lits);
 							free(learn);
@@ -622,7 +878,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 
 					// set assertion level
 					learn->assertion_level = get_assertion_level(learn);
-					learn->subsume = 0;
+					learn->asserted --;
 					sat_state->asserting = learn;
 					return 0;
 				} else {
@@ -637,7 +893,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 
 //undoes sat_unit_resolution(), leading to un-instantiating variables that have been instantiated
 //after sat_unit_resolution()
-void sat_undo_unit_resolution(SatState* sat_state) {
+void sat_undo_unit_resolution_old(SatState* sat_state) {
 	int dlevel = sat_state->decision_level;
 	for (int i = sat_state->implies_num - 1; i > -1; i--) {
 		if (sat_state->implies[i]->var->decision_level == dlevel) {
@@ -658,15 +914,15 @@ void sat_undo_unit_resolution(SatState* sat_state) {
 			clause = sat_state->learns[i - sat_state->clause_num];
 		}
 
-		if (clause->subsume) {
-			clause->subsume = 0;
+		if (clause->asserted == 0) {
+			clause->asserted = 0;
 			// recompute the result of the clause
 			for (int j = 0; j < clause->size; j++) {
 				Lit * litp = clause->lits[j];
 				if ((litp->index > 0 && litp->var->value == 1)
 						|| (litp->index < 0 && litp->var->value == 0)) {
 					// this literal is true, the clause is subsumed
-					clause->subsume = 1;
+					clause->asserted ++;
 					break;
 				}
 			}
