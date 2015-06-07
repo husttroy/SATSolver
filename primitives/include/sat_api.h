@@ -110,7 +110,6 @@ typedef struct clause {
 	int assertion_level;
 	Lit * l1;
 	Lit * l2;
-	int start; // where we should start searching for the non-resolved literal
 	BOOLEAN mark; //THIS FIELD MUST STAY AS IS
 } Clause;
 
