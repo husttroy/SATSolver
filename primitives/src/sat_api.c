@@ -128,7 +128,7 @@ Clause* sat_decide_literal(Lit* lit, SatState* sat_state) {
 	// update its decision level
 	lit->var->decision_level = sat_state->decision_level + 1;
 	if (sat_state->decision_capacity < sat_state->decision_level) {
-		sat_state->decision_capacity += 5;
+		sat_state->decision_capacity *= 2;
 		sat_state->decisions = (Lit **) realloc(sat_state->decisions,
 				sat_state->decision_capacity * sizeof(Lit *));
 	}
@@ -210,7 +210,7 @@ Clause* sat_assert_clause(Clause* clause, SatState* sat_state) {
 	int capacity = sat_state->learn_capacity;
 
 	if (size == capacity) {
-		capacity += 5;
+		capacity *= 2;
 		learns = (Clause **) realloc(learns, capacity * sizeof(Clause *));
 		sat_state->learn_capacity = capacity;
 		sat_state->learns = learns;
@@ -256,7 +256,7 @@ int startsWith(const char *pre, const char *str) {
 
 void add_clause(Var * var, Clause * clause) {
 	if (var->clause_num + 1 > var->clause_capacity) {
-		var->clause_capacity += 10;
+		var->clause_capacity *= 2;
 		var->clauses = (Clause **) realloc(var->clauses,
 				var->clause_capacity * sizeof(Clause *));
 	}
@@ -268,19 +268,9 @@ void add_clause(Var * var, Clause * clause) {
 //constructs a SatState from an input cnf file
 SatState* sat_state_new(const char* file_name) {
 	FILE *fp = fopen(file_name, "r");
-	const size_t len = 1024;
+	const size_t len = 2147483647;
 	char *line = (char *) malloc(len);
 	SatState* sat_state = (SatState*) malloc(sizeof(SatState));
-	sat_state->learns = (Clause **) malloc(sizeof(Clause *) * 10);
-	sat_state->learn_num = 0;
-	sat_state->learn_capacity = 10;
-	sat_state->decisions = (Lit **) malloc(sizeof(Lit *) * 10);
-	sat_state->decision_level = 1;
-	sat_state->decision_capacity = 10;
-	sat_state->implies = (Lit **) malloc(sizeof(Lit *) * 10);
-	sat_state->implies_num = 0;
-	sat_state->implies_capacity = 10;
-	sat_state->asserting = NULL;
 
 	if (fp == NULL) {
 		printf("%s",
@@ -292,7 +282,7 @@ SatState* sat_state_new(const char* file_name) {
 	while (fgets(line, len, fp) != NULL) {
 		if (startsWith("0", line) || startsWith("c", line)
 				|| startsWith("%", line) || startsWith("ccc", line)
-				|| startsWith("cc", line))
+				|| startsWith("cc", line) || startsWith("\n", line))
 			continue; // comment line
 		else if (startsWith("p", line)) {
 			// problem line, tokenize it
@@ -310,9 +300,9 @@ SatState* sat_state_new(const char* file_name) {
 						var->pos = NULL;
 						var->neg = NULL;
 						var->clauses = (Clause **) malloc(
-								sizeof(Clause *) * 10);
+								sizeof(Clause *) * 200);
 						var->clause_num = 0;
-						var->clause_capacity = 10;
+						var->clause_capacity = 200;
 						var->value = -1;
 						var->decision_level = 0;
 						var->reason = NULL;
@@ -327,9 +317,11 @@ SatState* sat_state_new(const char* file_name) {
 						Lit * pos = (Lit *) malloc(sizeof(Lit));
 						pos->index = i + 1;
 						pos->var = sat_state->vars[i];
+						pos->redundant = 0;
 						Lit * neg = (Lit *) malloc(sizeof(Lit));
 						neg->index = -(i + 1);
 						neg->var = sat_state->vars[i];
+						neg->redundant = 0;
 
 						sat_state->lits[2 * i] = pos;
 						sat_state->lits[2 * i + 1] = neg;
@@ -366,7 +358,7 @@ SatState* sat_state_new(const char* file_name) {
 					break;
 				int var_index = lit_index > 0 ? lit_index : -lit_index;
 				if (lit_count >= capacity) {
-					capacity += 5;
+					capacity *= 2;
 					c->lits = (Lit **) realloc(c->lits,
 							capacity * sizeof(Lit *));
 				}
@@ -382,10 +374,14 @@ SatState* sat_state_new(const char* file_name) {
 				lit_count++;
 			}
 
-			c->size = lit_count;
-			sat_state->cnf[clause_count] = c;
-
-			clause_count++;
+			if(lit_count == 0){
+				free(c->lits);
+				free(c);
+			}else{
+				c->size = lit_count;
+				sat_state->cnf[clause_count] = c;
+				clause_count++;
+			}
 		}
 	}
 
@@ -397,6 +393,17 @@ SatState* sat_state_new(const char* file_name) {
 	fclose(fp);
 	if (line)
 		free(line);
+
+	sat_state->learns = (Clause **) malloc(sizeof(Clause *) * 200);
+	sat_state->learn_num = 0;
+	sat_state->learn_capacity = 200;
+	sat_state->decisions = (Lit **) malloc(sizeof(Lit *) * sat_state->var_num);
+	sat_state->decision_level = 1;
+	sat_state->decision_capacity = sat_state->var_num;
+	sat_state->implies = (Lit **) malloc(sizeof(Lit *) * sat_state->var_num);
+	sat_state->implies_num = 0;
+	sat_state->implies_capacity = sat_state->var_num;
+	sat_state->asserting = NULL;
 
 	return sat_state;
 }
@@ -559,7 +566,7 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 
 					if (sat_state->implies_num + 1
 							> sat_state->implies_capacity) {
-						sat_state->implies_capacity += 10;
+						sat_state->implies_capacity *= 2;
 						sat_state->implies = (Lit **) realloc(
 								sat_state->implies,
 								sat_state->implies_capacity * sizeof(Lit *));
@@ -586,25 +593,22 @@ BOOLEAN sat_unit_resolution(SatState* sat_state) {
 							if (i < learn->size) {
 								lit2 = learn->lits[i];
 							} else {
-								lit2 = learn->lits[i - learn->size];
+								lit2 = reason->lits[i - learn->size];
+								if(lit2->redundant){
+									continue;
+								}
 							}
 
 							if (lit2->index != lit->index
 									&& lit2->index + lit->index != 0) {
-								BOOLEAN redundant = 0;
-								for (int j = 0; j < index; j++) {
-									// avoid adding redundant literal
-									if (lit2->index
-											== resolvent->lits[j]->index) {
-										redundant = 1;
-										break;
-									}
-								}
-								if (!redundant) {
 									resolvent->lits[index] = lit2;
+									lit2->redundant = 1;
 									index++;
-								}
 							}
+						}
+
+						for(int i = 0; i < index; i++){
+							resolvent->lits[i]->redundant = 0;
 						}
 
 						resolvent->size = index;
