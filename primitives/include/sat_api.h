@@ -86,6 +86,7 @@ typedef struct var {
 typedef struct literal {
 	c2dLiteral index;
 	Var * var;
+	BOOLEAN redundant; // used to check if this literal has been added when merging and learning clause
 } Lit;
 
 /******************************************************************************
