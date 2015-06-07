@@ -72,11 +72,7 @@ c2dSize sat_var_occurences(const Var* var) {
 //index starts from 0, and is less than the number of clauses mentioning the variable
 //this cannot be called on a variable that is not mentioned by any clause
 Clause* sat_clause_of_var(c2dSize index, const Var* var) {
-	if (index > -1 && index < var->clause_num) {
 		return var->clauses[index];
-	} else {
-		return NULL;
-	}
 }
 
 /******************************************************************************
@@ -633,6 +629,11 @@ void learn_clause(Clause* clause, SatState* sat_state) {
 		resolvent->index = sat_state->clause_num + sat_state->learn_num + 1;
 		resolvent->lits = (Lit**) malloc(
 				sizeof(Lit*) * (learn->size + reason->size));
+		resolvent->mark = 0;
+		resolvent->l1 = NULL;
+		resolvent->l2 = NULL;
+		resolvent->assertion_level = 0;
+		resolvent->size = 0;
 		int index = 0;
 		for (c2dSize i = 0; i < learn->size + reason->size; i++) {
 			Lit* lit2;
